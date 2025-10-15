@@ -1,6 +1,7 @@
 <?php
-// Check if voting is closed for vote tally visibility
-$canViewTally = !$votingStatus['can_vote'];
+// Check user role - commissioners and admins can always view
+$isPrivilegedUser = ($_SESSION['role'] === 'commissioner' || $_SESSION['role'] === 'admin');
+$canViewTally = !$votingStatus['can_vote'] || $isPrivilegedUser;
 ?>
 
 <div id="dashboardSection">
@@ -46,27 +47,53 @@ $canViewTally = !$votingStatus['can_vote'];
         </div>
     </div>
 
-    <!-- Vote Tally Section -->
-    <?php if ($canViewTally): ?>
-        <div class="vote-tally-section" style="margin-top: 40px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <div style="background: #d1fae5; border-left: 4px solid #059669; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="color: #065f46; margin: 0; font-weight: bold;">
-                    ✓ Voting is closed. Vote tallies are now available.
-                </p>
-            </div>
+    <!-- Vote Tally Section - Always visible for commissioners -->
+    <div class="vote-tally-section" style="margin-top: 40px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <h2 style="text-align: center; color: #4f46e5; margin-bottom: 25px;">
+            <ion-icon name="bar-chart" style="vertical-align: middle;"></ion-icon>
+            Real-Time Vote Tally
+        </h2>
 
-            <h3>Main Organization Vote Tally</h3>
-            <select id="mainOrgSelect" style="width: 100%; max-width: 400px; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px;">
-                <option value="">Select Main Organization</option>
-                <option value="USC">USC (University Student Council)</option>
-                <option value="CSC">CSC (College Student Council)</option>
-            </select>
-            <table class="results-table" style="width: 100%; border-collapse: collapse;">
+        <!-- Voting Status Alert -->
+        <?php if ($votingStatus['can_vote']): ?>
+            <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <ion-icon name="information-circle" style="font-size: 1.5rem; color: #1e40af;"></ion-icon>
+                    <div>
+                        <p style="color: #1e3a8a; margin: 0; font-weight: 600;">
+                            🔴 Voting is currently <strong>OPEN</strong> - Results are updating in real-time
+                        </p>
+                        <p style="color: #1e40af; margin: 5px 0 0 0; font-size: 0.9rem;">
+                            Note: As a commissioner, you can view live results that are hidden from voters.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div style="background: #d1fae5; border-left: 4px solid #059669; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <ion-icon name="checkmark-circle" style="font-size: 1.5rem; color: #059669;"></ion-icon>
+                    <p style="color: #065f46; margin: 0; font-weight: bold;">
+                        ✓ Voting is <strong>CLOSED</strong> - Final results are displayed below
+                    </p>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Main Organization Vote Tally -->
+        <h3 style="color: #1f2937; margin-top: 30px;">Main Organization Vote Tally</h3>
+        <select id="mainOrgSelect" style="width: 100%; max-width: 400px; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; cursor: pointer;">
+            <option value="">Select Main Organization</option>
+            <option value="USC">USC (University Student Council)</option>
+            <option value="CSC">CSC (College Student Council)</option>
+        </select>
+        <div style="overflow-x: auto;">
+            <table class="results-table" style="width: 100%; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                 <thead>
-                    <tr style="background: #f3f4f6;">
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Candidate Name</th>
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Position</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb;">Total Votes</th>
+                    <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <th style="padding: 15px; text-align: left; font-weight: 600;">Candidate Name</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600;">Position</th>
+                        <th style="padding: 15px; text-align: center; font-weight: 600;">Total Votes</th>
                     </tr>
                 </thead>
                 <tbody id="mainVoteTbody">
@@ -75,23 +102,24 @@ $canViewTally = !$votingStatus['can_vote'];
             </table>
         </div>
 
-        <div class="vote-tally-section" style="margin-top: 40px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <h3>Sub Organization Vote Tally</h3>
-            <select id="subOrgSelect" style="width: 100%; max-width: 400px; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px;">
-                <option value="">Select Sub Organization</option>
-                <option value="ACCESS">ACCESS</option>
-                <option value="ASITS">ASITS</option>
-                <option value="BSEMC PromtPT">BSEMC PromtPT</option>
-                <option value="ISSO">ISSO</option>
-                <option value="LISAUX">LISAUX</option>
-                <option value="CICT-womens club">CICT-womens club</option>
-            </select>
-            <table class="results-table" style="width: 100%; border-collapse: collapse;">
+        <!-- Sub Organization Vote Tally -->
+        <h3 style="color: #1f2937; margin-top: 40px;">Sub Organization Vote Tally</h3>
+        <select id="subOrgSelect" style="width: 100%; max-width: 400px; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; margin-bottom: 20px; cursor: pointer;">
+            <option value="">Select Sub Organization</option>
+            <option value="ACCESS">ACCESS</option>
+            <option value="ASITS">ASITS</option>
+            <option value="BSEMC PromtPT">BSEMC PromtPT</option>
+            <option value="ISSO">ISSO</option>
+            <option value="LISAUX">LISAUX</option>
+            <option value="CICT-womens club">CICT-womens club</option>
+        </select>
+        <div style="overflow-x: auto;">
+            <table class="results-table" style="width: 100%; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                 <thead>
-                    <tr style="background: #f3f4f6;">
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Candidate Name</th>
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Position</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e5e7eb;">Total Votes</th>
+                    <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <th style="padding: 15px; text-align: left; font-weight: 600;">Candidate Name</th>
+                        <th style="padding: 15px; text-align: left; font-weight: 600;">Position</th>
+                        <th style="padding: 15px; text-align: center; font-weight: 600;">Total Votes</th>
                     </tr>
                 </thead>
                 <tbody id="subVoteTbody">
@@ -99,15 +127,5 @@ $canViewTally = !$votingStatus['can_vote'];
                 </tbody>
             </table>
         </div>
-    <?php else: ?>
-        <div style="max-width: 800px; margin: 40px auto; background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 25px; border-radius: 8px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 4rem; color: #f59e0b; margin-bottom: 15px;">🔒</div>
-                    <h3 style="color: #92400e; margin: 0 0 10px 0;">Vote Tally Not Available</h3>
-                    <p style="color: #78350f; margin: 0;">Results will be visible after voting closes.</p>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
+    </div>
 </div>

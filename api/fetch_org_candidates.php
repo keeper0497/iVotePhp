@@ -1,5 +1,5 @@
 <?php
-// Vote Tally API - Works for Admin, Voter, and Commissioner
+// Vote Tally API - Works for Admin & Commissioner (always), Voter (only when closed)
 
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/database.php';
@@ -22,7 +22,13 @@ if (empty($organization)) {
     exit;
 }
 
-// CHECK VOTING STATUS FIRST
+// Check if this is a privileged view request (admin or commissioner)
+$isPrivilegedView = isset($_GET['privileged_view']) && $_GET['privileged_view'] == '1';
+$isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+$isCommissioner = isset($_SESSION['role']) && $_SESSION['role'] === 'commissioner';
+$isPrivilegedUser = $isAdmin || $isCommissioner;
+
+// CHECK VOTING STATUS
 $scheduleQuery = "SELECT status FROM voting_schedule ORDER BY updated_at DESC LIMIT 1";
 $scheduleResult = $conn->query($scheduleQuery);
 
@@ -33,8 +39,8 @@ if ($scheduleResult && $scheduleResult->num_rows > 0) {
     $votingStatus = 'closed';
 }
 
-// ONLY ALLOW TALLY VIEWING WHEN VOTING IS CLOSED
-if ($votingStatus !== 'closed') {
+// ONLY ALLOW TALLY VIEWING WHEN VOTING IS CLOSED (UNLESS USER IS ADMIN/COMMISSIONER)
+if ($votingStatus !== 'closed' && !$isPrivilegedUser && !$isPrivilegedView) {
     echo json_encode([
         'error' => 'Vote tally is not available while voting is active',
         'voting_status' => 'open',
@@ -42,6 +48,9 @@ if ($votingStatus !== 'closed') {
     ]);
     exit;
 }
+
+// If privileged user is viewing while voting is open, add a flag to the response
+$isRealTimeView = ($votingStatus === 'open' && ($isPrivilegedUser || $isPrivilegedView));
 
 // Determine if main or sub organization
 $isMainOrg = in_array($organization, ['USC', 'CSC']);
@@ -104,12 +113,23 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 $conn->close();
 
-echo json_encode([
+// Build response
+$response = [
     'success' => true,
-    'voting_status' => 'closed',
+    'voting_status' => $votingStatus,
     'organization' => $organization,
     'is_main_org' => $isMainOrg,
     'candidates' => $candidates,
     'total_candidates' => count($candidates)
-]);
+];
+
+// Add privileged user metadata
+if ($isRealTimeView) {
+    $response['real_time_view'] = true;
+    $response['privileged_access'] = true;
+    $userType = $isAdmin ? 'Admin' : 'Commissioner';
+    $response['note'] = "$userType viewing real-time results while voting is open";
+}
+
+echo json_encode($response);
 ?>

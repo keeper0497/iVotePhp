@@ -199,36 +199,83 @@ if (endDateInput) {
     });
 }
 
-// =============== VOTE TALLY ===============
+// =============== VOTE TALLY (ADMIN VIEW - ALWAYS VISIBLE) ===============
+let autoRefreshInterval = null;
+let currentSelectedOrg = '';
+
 document.getElementById('adminOrgSelect')?.addEventListener('change', function() {
-    const org = this.value;
+    currentSelectedOrg = this.value;
+    loadAdminVoteTally(currentSelectedOrg);
+});
+
+// Auto-refresh functionality
+document.getElementById('autoRefreshToggle')?.addEventListener('change', function() {
+    if (this.checked && currentSelectedOrg) {
+        // Refresh every 10 seconds
+        autoRefreshInterval = setInterval(() => {
+            if (currentSelectedOrg) {
+                loadAdminVoteTally(currentSelectedOrg, true);
+            }
+        }, 10000);
+        
+        // Show notification
+        showRefreshNotification('Auto-refresh enabled');
+    } else {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+            showRefreshNotification('Auto-refresh disabled');
+        }
+    }
+});
+
+function loadAdminVoteTally(org, isAutoRefresh = false) {
     const container = document.getElementById('adminTallyContainer');
     
     if (!org) {
-        container.innerHTML = '<p style="text-align: center; color: #6b7280; font-style: italic;">Select an organization to view vote tally</p>';
+        container.innerHTML = `
+            <p style="text-align: center; color: #6b7280; font-style: italic; padding: 40px;">
+                <ion-icon name="stats-chart" style="font-size: 3rem; color: #9ca3af; display: block; margin: 0 auto 15px;"></ion-icon>
+                Select an organization to view vote tally
+            </p>
+        `;
         return;
     }
 
-    container.innerHTML = '<p style="text-align: center;">Loading vote tally...</p>';
+    if (!isAutoRefresh) {
+        container.innerHTML = '<p style="text-align: center; padding: 20px;"><ion-icon name="hourglass" style="font-size: 2rem; color: #6b7280;"></ion-icon><br>Loading vote tally...</p>';
+    }
 
-    const positionOrder = [
-        "President", "Vice President", "Executive Secretary", "Finance Secretary",
-        "Budget Secretary", "Auditor", "Public Information Secretary", "Property Custodian",
-        "Senators", "Legislators", "Year Representative", "Representative", "Other"
-    ];
-
-    fetch('api/fetch_org_candidates.php?organization=' + encodeURIComponent(org))
+    // Add admin_view parameter to bypass voting status check
+    fetch('api/fetch_org_candidates.php?organization=' + encodeURIComponent(org) + '&admin_view=1')
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                container.innerHTML = '<p style="color: red; text-align: center;">Error: ' + data.error + '</p>';
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: #fee2e2; border-radius: 8px;">
+                        <ion-icon name="alert-circle" style="font-size: 3rem; color: #dc2626;"></ion-icon>
+                        <p style="color: #dc2626; margin-top: 15px; font-weight: 600;">Error: ${data.error}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!data.candidates || data.candidates.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: #f9fafb; border-radius: 8px;">
+                        <ion-icon name="folder-open" style="font-size: 3rem; color: #9ca3af;"></ion-icon>
+                        <p style="color: #6b7280; margin-top: 15px;">No accepted candidates found for ${org}.</p>
+                    </div>
+                `;
                 return;
             }
 
-            if (!data.candidates || data.candidates.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #6b7280;">No accepted candidates found for ' + org + '.</p>';
-                return;
-            }
+            const positionOrder = [
+                'President', 'Vice President', 'Executive Secretary', 'Finance Secretary',
+                'Budget Secretary', 'Auditor', 'Public Information Secretary',
+                'Property Custodian', 'Senators', 'Legislators', 'Year Representative',
+                'Representative', 'Other'
+            ];
 
             const sortedCandidates = data.candidates.sort((a, b) => {
                 const posA = positionOrder.indexOf(a.position) !== -1 ? positionOrder.indexOf(a.position) : positionOrder.length;
@@ -236,36 +283,136 @@ document.getElementById('adminOrgSelect')?.addEventListener('change', function()
                 return posA - posB;
             });
 
-            let html = `<h3 style="text-align: center; margin-bottom: 20px; color: #1f2937;">Vote Tally for ${org}</h3>`;
-            html += `<table><thead><tr>
-                        <th>Candidate Name</th>
-                        <th>Position</th>
-                        <th style="text-align: center;">Total Votes</th>
-                    </tr></thead><tbody>`;
+            const lastUpdated = isAutoRefresh ? `<span style="color: #059669; font-size: 0.9rem; font-weight: normal;"> (Updated: ${new Date().toLocaleTimeString()})</span>` : '';
+            
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="color: #1f2937; margin: 0;">Vote Tally for ${org}</h3>
+                    ${lastUpdated}
+                </div>
+            `;
+            
+            html += `
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                        <thead>
+                            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <th style="padding: 15px; text-align: left; font-weight: 600;">Candidate Name</th>
+                                <th style="padding: 15px; text-align: left; font-weight: 600;">Position</th>
+                                <th style="padding: 15px; text-align: center; font-weight: 600;">Total Votes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
 
-            sortedCandidates.forEach(c => {
+            sortedCandidates.forEach((c, index) => {
                 const fullName = [c.first_name, c.middle_name, c.last_name].filter(Boolean).join(' ');
                 const position = c.position || 'Representative';
-                html += `<tr>
-                            <td><strong>${fullName}</strong></td>
-                            <td><span class="tally-position">${position}</span></td>
-                            <td style="text-align: center;">${c.total_votes || 0}</td>
-                        </tr>`;
+                const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                
+                html += `
+                    <tr style="background: ${rowBg}; border-bottom: 1px solid #e5e7eb; transition: background 0.2s;" 
+                        onmouseover="this.style.background='#f3f4f6'" 
+                        onmouseout="this.style.background='${rowBg}'">
+                        <td style="padding: 15px;">
+                            <strong style="color: #1f2937;">${fullName}</strong>
+                        </td>
+                        <td style="padding: 15px;">
+                            <span style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.9rem; font-weight: 600;">
+                                ${position}
+                            </span>
+                        </td>
+                        <td style="padding: 15px; text-align: center;">
+                            <span style="font-size: 1.25rem; font-weight: bold; color: #4f46e5;">
+                                ${c.total_votes || 0}
+                            </span>
+                        </td>
+                    </tr>
+                `;
             });
 
-            html += `</tbody></table>`;
+            html += `</tbody></table></div>`;
             
             const totalVotes = sortedCandidates.reduce((sum, c) => sum + (parseInt(c.total_votes) || 0), 0);
-            html += `<div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 6px;">`;
-            html += `<p style="margin: 0; color: #0c4a6e;"><strong>Total Votes Cast for ${org}:</strong> ${totalVotes}</p>`;
-            html += `</div>`;
+            const totalCandidates = sortedCandidates.length;
+            const avgVotes = totalCandidates > 0 ? (totalVotes / totalCandidates).toFixed(1) : 0;
+            
+            html += `
+                <div style="margin-top: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${totalVotes}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Total Votes Cast</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${totalCandidates}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Total Candidates</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2rem; font-weight: bold; margin-bottom: 5px;">${avgVotes}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">Average Votes</div>
+                    </div>
+                </div>
+            `;
 
             container.innerHTML = html;
         })
         .catch(err => {
-            container.innerHTML = '<p style="color: red; text-align: center;">Error loading vote tally.</p>';
-            console.error(err);
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; background: #fee2e2; border-radius: 8px;">
+                    <ion-icon name="warning" style="font-size: 3rem; color: #dc2626;"></ion-icon>
+                    <p style="color: #dc2626; margin-top: 15px; font-weight: 600;">Error loading vote tally</p>
+                    <p style="color: #991b1b; font-size: 0.9rem;">Please try again or contact support</p>
+                </div>
+            `;
+            console.error('Vote tally error:', err);
         });
+}
+
+function showRefreshNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #059669;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
+}
+
+// Add CSS animation
+if (!document.getElementById('notificationStyles')) {
+    const style = document.createElement('style');
+    style.id = 'notificationStyles';
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Clean up interval when leaving dashboard or page
+window.addEventListener('beforeunload', () => {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
 });
 
 // =============== COLLEGE FILTER FOR VOTERS ===============

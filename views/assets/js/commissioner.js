@@ -43,7 +43,7 @@ window.onload = function() {
     showSection(activeSection);
 };
 
-// Vote Tally - Main Organization
+// Vote Tally - Main Organization (with privileged access)
 document.getElementById('mainOrgSelect')?.addEventListener('change', function() {
     const org = this.value;
     const tbody = document.getElementById('mainVoteTbody');
@@ -53,13 +53,17 @@ document.getElementById('mainOrgSelect')?.addEventListener('change', function() 
         return;
     }
 
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;"><ion-icon name="hourglass" style="font-size: 2rem; color: #6b7280;"></ion-icon><br>Loading...</td></tr>';
 
-    fetch('api/fetch_org_candidates.php?organization=' + encodeURIComponent(org))
+    // Add privileged_view parameter for commissioners
+    fetch('api/fetch_org_candidates.php?organization=' + encodeURIComponent(org) + '&privileged_view=1')
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #dc2626;">Error: ' + data.error + '</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #dc2626;">
+                    <ion-icon name="alert-circle" style="font-size: 2rem; display: block; margin: 0 auto 10px;"></ion-icon>
+                    Error: ${data.error}
+                </td></tr>`;
                 return;
             }
 
@@ -69,17 +73,49 @@ document.getElementById('mainOrgSelect')?.addEventListener('change', function() 
             }
 
             tbody.innerHTML = '';
-            data.candidates.forEach(c => {
+            let totalVotes = 0;
+            
+            data.candidates.forEach((c, index) => {
                 const fullName = [c.first_name, c.middle_name, c.last_name].filter(Boolean).join(' ');
+                const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                const votes = parseInt(c.total_votes) || 0;
+                totalVotes += votes;
+                
                 const row = document.createElement('tr');
+                row.style.background = rowBg;
                 row.style.borderBottom = '1px solid #e5e7eb';
+                row.style.transition = 'background 0.2s';
+                row.onmouseover = function() { this.style.background = '#f3f4f6'; };
+                row.onmouseout = function() { this.style.background = rowBg; };
+                
                 row.innerHTML = `
-                    <td style="padding: 12px;">${fullName}</td>
-                    <td style="padding: 12px;">${c.position}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #4f46e5;">${c.total_votes || 0}</td>
+                    <td style="padding: 12px;"><strong>${fullName}</strong></td>
+                    <td style="padding: 12px;">
+                        <span style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.9rem; font-weight: 600;">
+                            ${c.position}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="font-size: 1.2rem; font-weight: bold; color: #4f46e5;">${votes}</span>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
+            
+            // Add total row
+            const totalRow = document.createElement('tr');
+            totalRow.style.background = '#f0f9ff';
+            totalRow.style.borderTop = '2px solid #0ea5e9';
+            totalRow.innerHTML = `
+                <td colspan="2" style="padding: 15px; font-weight: bold; color: #0c4a6e;">
+                    <ion-icon name="calculator" style="vertical-align: middle;"></ion-icon>
+                    Total Votes for ${org}
+                </td>
+                <td style="padding: 15px; text-align: center; font-weight: bold; font-size: 1.3rem; color: #0ea5e9;">
+                    ${totalVotes}
+                </td>
+            `;
+            tbody.appendChild(totalRow);
         })
         .catch(err => {
             tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #dc2626;">Error loading data</td></tr>';
@@ -87,7 +123,7 @@ document.getElementById('mainOrgSelect')?.addEventListener('change', function() 
         });
 });
 
-// Vote Tally - Sub Organization
+// Vote Tally - Sub Organization (with privileged access)
 document.getElementById('subOrgSelect')?.addEventListener('change', function() {
     const org = this.value;
     const tbody = document.getElementById('subVoteTbody');
@@ -97,13 +133,17 @@ document.getElementById('subOrgSelect')?.addEventListener('change', function() {
         return;
     }
 
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;"><ion-icon name="hourglass" style="font-size: 2rem; color: #6b7280;"></ion-icon><br>Loading...</td></tr>';
 
-    fetch('api/fetch_org_candidates.php?organization=' + encodeURIComponent(org))
+    // Add privileged_view parameter for commissioners
+    fetch('api/fetch_org_candidates.php?organization=' + encodeURIComponent(org) + '&privileged_view=1')
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #dc2626;">Error: ' + data.error + '</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #dc2626;">
+                    <ion-icon name="alert-circle" style="font-size: 2rem; display: block; margin: 0 auto 10px;"></ion-icon>
+                    Error: ${data.error}
+                </td></tr>`;
                 return;
             }
 
@@ -113,23 +153,56 @@ document.getElementById('subOrgSelect')?.addEventListener('change', function() {
             }
 
             tbody.innerHTML = '';
-            data.candidates.forEach(c => {
+            let totalVotes = 0;
+            
+            data.candidates.forEach((c, index) => {
                 const fullName = [c.first_name, c.middle_name, c.last_name].filter(Boolean).join(' ');
+                const rowBg = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+                const votes = parseInt(c.total_votes) || 0;
+                totalVotes += votes;
+                
                 const row = document.createElement('tr');
+                row.style.background = rowBg;
                 row.style.borderBottom = '1px solid #e5e7eb';
+                row.style.transition = 'background 0.2s';
+                row.onmouseover = function() { this.style.background = '#f3f4f6'; };
+                row.onmouseout = function() { this.style.background = rowBg; };
+                
                 row.innerHTML = `
-                    <td style="padding: 12px;">${fullName}</td>
-                    <td style="padding: 12px;">${c.position || 'Representative'}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #4f46e5;">${c.total_votes || 0}</td>
+                    <td style="padding: 12px;"><strong>${fullName}</strong></td>
+                    <td style="padding: 12px;">
+                        <span style="background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 0.9rem; font-weight: 600;">
+                            ${c.position || 'Representative'}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="font-size: 1.2rem; font-weight: bold; color: #4f46e5;">${votes}</span>
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
+            
+            // Add total row
+            const totalRow = document.createElement('tr');
+            totalRow.style.background = '#f0f9ff';
+            totalRow.style.borderTop = '2px solid #0ea5e9';
+            totalRow.innerHTML = `
+                <td colspan="2" style="padding: 15px; font-weight: bold; color: #0c4a6e;">
+                    <ion-icon name="calculator" style="vertical-align: middle;"></ion-icon>
+                    Total Votes for ${org}
+                </td>
+                <td style="padding: 15px; text-align: center; font-weight: bold; font-size: 1.3rem; color: #0ea5e9;">
+                    ${totalVotes}
+                </td>
+            `;
+            tbody.appendChild(totalRow);
         })
         .catch(err => {
             tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #dc2626;">Error loading data</td></tr>';
             console.error(err);
         });
 });
+
 
 // Sidebar toggle
 const toggle = document.querySelector('.toggle');
