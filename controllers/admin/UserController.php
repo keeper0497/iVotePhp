@@ -98,39 +98,41 @@ class UserController {
     }
 
     public function getVotersWithStatus() {
-        // Query to select all voter user data (u.*) and the timestamp from the votes table (v.voted_at)
-        $sql = "
-            SELECT 
-                u.id, 
-                u.email, 
-                u.student_id, 
-                u.role, 
-                u.college,
-                v.voted_at
-            FROM 
-                users u
-            LEFT JOIN 
-                votes v ON u.id = v.voter_id  
-            WHERE 
-                u.role = 'voter'
-            ORDER BY 
-                u.student_id ASC
-        ";
-
+        $sql = "SELECT 
+                    u.id,
+                    u.student_id,
+                    u.email,
+                    u.college,
+                    u.role,
+                    CASE 
+                        WHEN v.user_id IS NOT NULL THEN 1 
+                        ELSE 0 
+                    END as has_voted,
+                    MIN(v.voted_at) as voted_at
+                FROM users u
+                LEFT JOIN (
+                    SELECT DISTINCT user_id, MIN(voted_at) as voted_at
+                    FROM votes
+                    GROUP BY user_id
+                ) v ON u.id = v.user_id
+                WHERE u.role = 'voter'
+                GROUP BY u.id
+                ORDER BY u.id ASC";
+        
         $result = $this->conn->query($sql);
-        $voters = [];
-
-        if ($result) {
-            while ($row = $result->fetch_assoc()) {
-                // 'voted_at' will be NULL if no match was found in the votes table (meaning not voted)
-                $row['has_voted'] = !empty($row['voted_at']);
-                $voters[] = $row;
-            }
-        } else {
-            error_log("DB Error fetching voters with status: " . $this->conn->error);
+        
+        if (!$result) {
+            error_log("Error fetching voters with status: " . $this->conn->error);
+            return [];
         }
-
+        
+        $voters = [];
+        while ($row = $result->fetch_assoc()) {
+            $voters[] = $row;
+        }
+        
         return $voters;
     }
+
 }
 ?>

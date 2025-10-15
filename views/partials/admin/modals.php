@@ -11,7 +11,7 @@
                 <option value="">Select Role</option>
                 <option value="voter">Voter</option>
                 <option value="admin">Admin</option>
-                <option value="candidate">Candidate</option>
+                <option value="commissioner">Commissioner</option>
             </select>
             <select name="college" required>
                 <option value="">Select College</option>
@@ -43,7 +43,7 @@
             <select name="role" id="edit_role" required>
                 <option value="voter">Voter</option>
                 <option value="admin">Admin</option>
-                <option value="candidate">Candidate</option>
+                <option value="commissioner">Commissioner</option>
             </select>
             <select name="college" id="edit_college" required>
                 <option value="CICT">CICT (College of Information and Communications Technology)</option>

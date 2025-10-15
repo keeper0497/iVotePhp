@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 13, 2025 at 09:12 AM
+-- Generation Time: Oct 15, 2025 at 05:18 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -110,7 +110,7 @@ CREATE TABLE `users` (
   `email` varchar(100) NOT NULL,
   `student_id` varchar(20) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('voter','candidate','admin') NOT NULL,
+  `role` enum('voter','commissioner','admin') NOT NULL,
   `college` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -121,7 +121,8 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `email`, `student_id`, `password`, `role`, `college`) VALUES
 (2, 'admin01@yopmail.com', '2022-00001', 'admin123', 'admin', ''),
 (18, 'user02@yopmail.com', '2022-0003', '12-08-2003', 'voter', 'CICT'),
-(27, 'user01@yopmail.com', '2022-0002', '12-08-2003', 'voter', 'CICT');
+(27, 'user01@yopmail.com', '2022-0002', '12-08-2003', 'voter', 'CICT'),
+(43, 'commissioner01@yopmail.com', '2022-0004', '12-08-2003', 'commissioner', 'CICT');
 
 -- --------------------------------------------------------
 
@@ -143,10 +144,8 @@ CREATE TABLE `votes` (
 --
 
 INSERT INTO `votes` (`id`, `user_id`, `candidate_id`, `position`, `organization_type`, `voted_at`) VALUES
-(1, 27, 5, 'President', 'Main', '2025-10-13 06:17:22'),
-(2, 27, 2, 'ACCESS', 'Sub', '2025-10-13 06:17:22'),
-(3, 18, 5, 'President', 'Main', '2025-10-13 06:48:30'),
-(4, 18, 2, 'ACCESS', 'Sub', '2025-10-13 06:48:30');
+(5, 27, 5, 'President', 'Main', '2025-10-14 13:49:09'),
+(6, 27, 2, 'ACCESS', 'Sub', '2025-10-14 13:49:09');
 
 -- --------------------------------------------------------
 
@@ -169,7 +168,7 @@ CREATE TABLE `voting_schedule` (
 --
 
 INSERT INTO `voting_schedule` (`id`, `status`, `start_date`, `end_date`, `description`, `created_at`, `updated_at`) VALUES
-(1, 'open', '2025-10-10 03:45:00', '2025-10-14 14:45:00', 'Voting closed by admin', '2025-09-23 01:43:24', '2025-10-13 02:09:18');
+(1, 'closed', '2025-10-10 03:45:00', '2025-10-15 14:45:00', 'Voting closed by admin', '2025-09-23 01:43:24', '2025-10-14 14:53:47');
 
 --
 -- Indexes for dumped tables
@@ -231,13 +230,13 @@ ALTER TABLE `sub_org_candidates`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
 
 --
 -- AUTO_INCREMENT for table `votes`
 --
 ALTER TABLE `votes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `voting_schedule`

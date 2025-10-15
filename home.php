@@ -24,7 +24,7 @@
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans";
       color: var(--text);
-      background-image: url('assets/imgs/background.webp');
+      background-image: url('views/assets/imgs/background.webp');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;

@@ -1,22 +1,68 @@
+<?php
+// Check if voting is closed to allow viewing reports
+$canViewReports = ($votingSchedule && $votingSchedule['status'] === 'closed');
+?>
+
 <div class="details" id="reportingSection" style="display:none;">
     <div class="recentOrders">
         <div class="cardHeader">
             <h2>Reporting Module</h2>
             <div style="display: flex; gap: 10px;" id="reportActions">
-                <?php if (!empty($reportData)): ?>
+                <?php if (!empty($reportData) && $canViewReports): ?>
                 <button class="btn" onclick="window.print()">Print Report</button>
                 <button class="btn" onclick="openModal('exportModal')">Export Report</button>
                 <?php endif; ?>
             </div>
         </div>
         
-        <div class="report-generator">
+        <!-- Voting Status Alert -->
+        <?php if (!$canViewReports): ?>
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <ion-icon name="lock-closed" style="font-size: 2.5rem; color: #f59e0b;"></ion-icon>
+                    <div>
+                        <h3 style="color: #92400e; margin: 0 0 8px 0; font-size: 1.2rem;">⚠️ Reports Locked During Active Voting</h3>
+                        <p style="color: #78350f; margin: 0; line-height: 1.6;">
+                            Reports and analytics will be available after voting closes to ensure result integrity 
+                            and prevent real-time vote counts from influencing voters.
+                        </p>
+                        <p style="color: #78350f; margin: 10px 0 0 0; font-weight: bold;">
+                            Current Status: <span style="color: #dc2626;">Voting is Open</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        <?php else: ?>
+            <div style="background: #d1fae5; border-left: 4px solid #059669; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <ion-icon name="checkmark-circle" style="font-size: 1.8rem; color: #059669;"></ion-icon>
+                    <p style="color: #065f46; margin: 0; font-weight: bold;">
+                        ✓ Voting is closed. All reports are now available.
+                    </p>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Report Error Message -->
+        <?php if (isset($reportData['error'])): ?>
+            <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <ion-icon name="alert-circle" style="font-size: 2rem; color: #dc2626;"></ion-icon>
+                    <div>
+                        <h4 style="color: #991b1b; margin: 0 0 5px 0;">Cannot Generate Report</h4>
+                        <p style="color: #991b1b; margin: 0;"><?= htmlspecialchars($reportData['error']) ?></p>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+        
+        <div class="report-generator" style="<?= !$canViewReports ? 'opacity: 0.5; pointer-events: none; user-select: none;' : '' ?>">
             <h3>Generate Reports</h3>
             <form method="POST" class="report-form">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="report_type"><strong>Select Report Type:</strong></label>
-                        <select name="report_type" id="report_type" required>
+                        <select name="report_type" id="report_type" required <?= !$canViewReports ? 'disabled' : '' ?>>
                             <option value="">-- Select Report Type --</option>
                             <option value="voters_summary" <?= $reportType == 'voters_summary' ? 'selected' : '' ?>>Voters Summary Report</option>
                             <option value="candidates_summary" <?= $reportType == 'candidates_summary' ? 'selected' : '' ?>>Candidates Summary Report</option>
@@ -26,14 +72,16 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <button type="submit" name="generateReport" class="btn generate-btn">Generate Report</button>
+                        <button type="submit" name="generateReport" class="btn generate-btn" <?= !$canViewReports ? 'disabled' : '' ?>>
+                            <?= $canViewReports ? 'Generate Report' : '🔒 Locked' ?>
+                        </button>
                     </div>
                 </div>
             </form>
         </div>
 
         <!-- Report Display -->
-        <?php if (!empty($reportData) && $reportType !== 'complete_election'): ?>
+        <?php if (!empty($reportData) && !isset($reportData['error']) && $reportType !== 'complete_election' && $canViewReports): ?>
         <div class="report-content printable-content">
             <div class="report-header">
                 <h2><?= htmlspecialchars($reportTitle) ?></h2>
@@ -48,6 +96,7 @@
                             <tr>
                                 <th>Student ID</th>
                                 <th>Email</th>
+                                <th>College</th>
                                 <th>Vote Status</th>
                                 <th>Voted At</th>
                             </tr>
@@ -57,8 +106,10 @@
                             <tr>
                                 <td><?= htmlspecialchars($row['student_id']) ?></td>
                                 <td><?= htmlspecialchars($row['email']) ?></td>
+                                <td><?= htmlspecialchars($row['college'] ?? 'N/A') ?></td>
                                 <td>
-                                    <span class="vote-status <?= $row['vote_status'] === 'Voted' ? 'voted' : 'not-voted' ?>">
+                                    <span class="vote-status <?= $row['vote_status'] === 'Voted' ? 'voted' : 'not-voted' ?>" 
+                                          style="padding: 5px 10px; border-radius: 5px; font-weight: bold; <?= $row['vote_status'] === 'Voted' ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;' ?>">
                                         <?= $row['vote_status'] ?>
                                     </span>
                                 </td>
@@ -68,7 +119,7 @@
                         </tbody>
                     </table>
                     
-                    <div class="report-summary">
+                    <div class="report-summary" style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px;">
                         <?php
                         $totalVotersReport = count($reportData);
                         $votedCount = count(array_filter($reportData, function($row) { return $row['vote_status'] === 'Voted'; }));
@@ -76,9 +127,9 @@
                         ?>
                         <h4>Summary Statistics:</h4>
                         <p>Total Registered Voters: <strong><?= $totalVotersReport ?></strong></p>
-                        <p>Voters Who Voted: <strong><?= $votedCount ?></strong></p>
-                        <p>Voters Who Haven't Voted: <strong><?= $totalVotersReport - $votedCount ?></strong></p>
-                        <p>Voting Percentage: <strong><?= $votingPercentage ?>%</strong></p>
+                        <p>Voters Who Voted: <strong style="color: #059669;"><?= $votedCount ?></strong></p>
+                        <p>Voters Who Haven't Voted: <strong style="color: #dc2626;"><?= $totalVotersReport - $votedCount ?></strong></p>
+                        <p>Voting Percentage: <strong style="color: #4f46e5;"><?= $votingPercentage ?>%</strong></p>
                     </div>
                 
                 <?php elseif ($reportType === 'candidates_summary'): ?>
@@ -88,7 +139,7 @@
                                 <th>Organization Type</th>
                                 <th>Candidate Name</th>
                                 <th>Organization</th>
-                                <th>Position/Year</th>
+                                <th>Position</th>
                                 <th>Status</th>
                                 <th>Filing Date</th>
                             </tr>
@@ -113,7 +164,8 @@
                             <tr>
                                 <th>Date</th>
                                 <th>Hour</th>
-                                <th>Votes Count</th>
+                                <th>Unique Voters</th>
+                                <th>Total Votes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -121,7 +173,8 @@
                             <tr>
                                 <td><?= date('M j, Y', strtotime($row['vote_date'])) ?></td>
                                 <td><?= str_pad($row['vote_hour'], 2, '0', STR_PAD_LEFT) ?>:00</td>
-                                <td><?= $row['votes_count'] ?></td>
+                                <td><?= $row['unique_voters'] ?></td>
+                                <td><?= $row['total_votes'] ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -150,7 +203,7 @@
             </div>
         </div>
         
-        <?php elseif (!empty($reportData) && $reportType === 'complete_election'): ?>
+        <?php elseif (!empty($reportData) && !isset($reportData['error']) && $reportType === 'complete_election' && $canViewReports): ?>
         <!-- Complete Election Report -->
         <div class="report-content printable-content">
             <div class="report-header">
@@ -232,13 +285,18 @@
                     <h3>4. Daily Voting Activity</h3>
                     <table class="report-table">
                         <thead>
-                            <tr><th>Date</th><th>Votes Count</th></tr>
+                            <tr>
+                                <th>Date</th>
+                                <th>Unique Voters</th>
+                                <th>Total Votes</th>
+                            </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($reportData['daily_activity'] as $activity): ?>
                             <tr>
                                 <td><?= date('M j, Y', strtotime($activity['vote_date'])) ?></td>
-                                <td><?= $activity['votes_count'] ?></td>
+                                <td><?= $activity['unique_voters'] ?></td>
+                                <td><?= $activity['total_votes'] ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -249,13 +307,15 @@
         </div>
         <?php endif; ?>
         
-        <?php if (empty($reportData) && !isset($_POST['generateReport'])): ?>
-        <div class="no-report">
-            <p>Select a report type and click "Generate Report" to view the report.</p>
+        <?php if (empty($reportData) && !isset($_POST['generateReport']) && $canViewReports): ?>
+        <div class="no-report" style="text-align: center; padding: 40px; color: #6b7280;">
+            <ion-icon name="document-text-outline" style="font-size: 4rem;"></ion-icon>
+            <p style="font-size: 1.1rem; margin-top: 20px;">Select a report type and click "Generate Report" to view the report.</p>
         </div>
-        <?php elseif (empty($reportData) && isset($_POST['generateReport'])): ?>
-        <div class="no-data">
-            <p>No data found for the selected report type.</p>
+        <?php elseif (empty($reportData) && isset($_POST['generateReport']) && $canViewReports): ?>
+        <div class="no-data" style="text-align: center; padding: 40px; color: #6b7280;">
+            <ion-icon name="alert-circle-outline" style="font-size: 4rem; color: #f59e0b;"></ion-icon>
+            <p style="font-size: 1.1rem; margin-top: 20px;">No data found for the selected report type.</p>
         </div>
         <?php endif; ?>
     </div>

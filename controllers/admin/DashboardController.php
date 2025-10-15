@@ -20,12 +20,14 @@ class DashboardController {
             $stats['total_voters'] = 0;
         }
         
-        // Total candidates
-        $candidatesMainResult = $this->conn->query("SELECT COUNT(*) as count FROM main_org_candidates");
-        $candidatesSubResult = $this->conn->query("SELECT COUNT(*) as count FROM sub_org_candidates");
+        // Total candidates (accepted only)
+        $candidatesMainResult = $this->conn->query("SELECT COUNT(*) as count FROM main_org_candidates WHERE status = 'Accepted'");
+        $candidatesSubResult = $this->conn->query("SELECT COUNT(*) as count FROM sub_org_candidates WHERE status = 'Accepted'");
         
         if ($candidatesMainResult && $candidatesSubResult) {
-            $stats['total_candidates'] = $candidatesMainResult->fetch_assoc()['count'] + $candidatesSubResult->fetch_assoc()['count'];
+            $mainCount = $candidatesMainResult->fetch_assoc()['count'];
+            $subCount = $candidatesSubResult->fetch_assoc()['count'];
+            $stats['total_candidates'] = $mainCount + $subCount;
             $candidatesMainResult->free();
             $candidatesSubResult->free();
         } else {
@@ -33,7 +35,7 @@ class DashboardController {
         }
         
         // Students who voted
-        $votesResult = $this->conn->query("SELECT COUNT(*) as count FROM votes");
+        $votesResult = $this->conn->query("SELECT COUNT(DISTINCT user_id) as count FROM votes");
         if ($votesResult) {
             $stats['students_voted'] = $votesResult->fetch_assoc()['count'];
             $votesResult->free();

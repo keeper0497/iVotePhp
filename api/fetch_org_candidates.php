@@ -1,55 +1,97 @@
 <?php
-// API endpoint to fetch candidates by organization with vote tally
+// Vote Tally API - Works for Admin, Voter, and Commissioner
+
+require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../config/database.php';
 
 header('Content-Type: application/json');
 
-require_once '../config/database.php';
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['error' => 'Unauthorized access. Please login.']);
+    exit;
+}
 
-if (!isset($_GET['organization'])) {
+$conn = getConnection();
+
+// Get organization from request
+$organization = $_GET['organization'] ?? '';
+
+if (empty($organization)) {
     echo json_encode(['error' => 'Organization parameter is required']);
     exit;
 }
 
-$organization = $_GET['organization'];
-$conn = getConnection();
+// CHECK VOTING STATUS FIRST
+$scheduleQuery = "SELECT status FROM voting_schedule ORDER BY updated_at DESC LIMIT 1";
+$scheduleResult = $conn->query($scheduleQuery);
 
-// Determine if this is a main or sub organization
-$mainOrgs = ['USC', 'CSC'];
-$isMainOrg = in_array($organization, $mainOrgs);
+if ($scheduleResult && $scheduleResult->num_rows > 0) {
+    $schedule = $scheduleResult->fetch_assoc();
+    $votingStatus = $schedule['status'];
+} else {
+    $votingStatus = 'closed';
+}
+
+// ONLY ALLOW TALLY VIEWING WHEN VOTING IS CLOSED
+if ($votingStatus !== 'closed') {
+    echo json_encode([
+        'error' => 'Vote tally is not available while voting is active',
+        'voting_status' => 'open',
+        'message' => 'Results will be available after voting closes'
+    ]);
+    exit;
+}
+
+// Determine if main or sub organization
+$isMainOrg = in_array($organization, ['USC', 'CSC']);
 
 if ($isMainOrg) {
-    // Query for main organization candidates with vote count
+    // MAIN ORGANIZATION QUERY
     $sql = "SELECT 
-                c.id,
-                c.first_name,
-                c.middle_name,
-                c.last_name,
-                c.position,
-                c.organization,
+                m.id,
+                m.first_name,
+                m.middle_name,
+                m.last_name,
+                m.position,
+                m.organization,
                 COUNT(v.id) as total_votes
-            FROM main_org_candidates c
-            LEFT JOIN votes v ON v.candidate_id = c.id AND v.candidate_type = 'main'
-            WHERE c.organization = ? AND c.status = 'Accepted'
-            GROUP BY c.id, c.first_name, c.middle_name, c.last_name, c.position, c.organization
-            ORDER BY c.position, c.last_name";
+            FROM main_org_candidates m
+            LEFT JOIN votes v ON m.id = v.candidate_id 
+                AND v.organization_type = 'Main'
+                AND v.position = m.position
+            WHERE m.status = 'Accepted' AND m.organization = ?
+            GROUP BY m.id
+            ORDER BY m.position, total_votes DESC";
 } else {
-    // Query for sub organization candidates with vote count
+    // SUB ORGANIZATION QUERY
+    // Key: votes.position stores the ORGANIZATION NAME for sub orgs
     $sql = "SELECT 
-                c.id,
-                c.first_name,
-                c.middle_name,
-                c.last_name,
-                c.year as position,
-                c.organization,
+                s.id,
+                s.first_name,
+                s.middle_name,
+                s.last_name,
+                COALESCE(s.year, 'Representative') as position,
+                s.organization,
                 COUNT(v.id) as total_votes
-            FROM sub_org_candidates c
-            LEFT JOIN votes v ON v.candidate_id = c.id AND v.candidate_type = 'sub'
-            WHERE c.organization = ? AND c.status = 'Accepted'
-            GROUP BY c.id, c.first_name, c.middle_name, c.last_name, c.year, c.organization
-            ORDER BY c.year, c.last_name";
+            FROM sub_org_candidates s
+            LEFT JOIN votes v ON s.id = v.candidate_id 
+                AND v.organization_type = 'Sub'
+                AND v.position = s.organization
+            WHERE s.status = 'Accepted' AND s.organization = ?
+            GROUP BY s.id
+            ORDER BY s.organization, total_votes DESC";
 }
 
 $stmt = $conn->prepare($sql);
+if (!$stmt) {
+    echo json_encode([
+        'error' => 'Database error: ' . $conn->error,
+        'debug' => 'Check if sub_org_candidates table structure matches query'
+    ]);
+    exit;
+}
+
 $stmt->bind_param("s", $organization);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -63,7 +105,10 @@ $stmt->close();
 $conn->close();
 
 echo json_encode([
+    'success' => true,
+    'voting_status' => 'closed',
     'organization' => $organization,
+    'is_main_org' => $isMainOrg,
     'candidates' => $candidates,
     'total_candidates' => count($candidates)
 ]);

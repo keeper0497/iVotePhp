@@ -8,47 +8,76 @@ class ReportController {
         $this->conn = $connection;
     }
     
+    /**
+     * Check if results can be viewed (only when voting is closed)
+     */
+    public function canViewResults() {
+        $scheduleQuery = "SELECT status FROM voting_schedule ORDER BY updated_at DESC LIMIT 1";
+        $result = $this->conn->query($scheduleQuery);
+        
+        if ($result && $result->num_rows > 0) {
+            $schedule = $result->fetch_assoc();
+            return $schedule['status'] === 'closed';
+        }
+        
+        return true; // Default to true if no schedule exists
+    }
+    
     public function generateReport($reportType) {
+        // Check if results can be viewed
+        if (!$this->canViewResults()) {
+            return [
+                'title' => 'Report Not Available',
+                'data' => [],
+                'error' => 'Reports are only available when voting is closed to ensure result integrity.'
+            ];
+        }
+        
         $reportData = [];
         $reportTitle = '';
         
         switch($reportType) {
             case 'voters_summary':
                 $reportTitle = 'Voters Summary Report';
+                // FIXED: Changed voter_id to user_id and vote_date to voted_at
                 $sql = "SELECT 
                             u.id, 
                             u.student_id, 
-                            u.email, 
-                            CASE WHEN v.vote_date IS NOT NULL THEN 'Voted' ELSE 'Not Voted' END as vote_status,
-                            v.vote_date as voted_at
+                            u.email,
+                            u.college,
+                            CASE WHEN v.user_id IS NOT NULL THEN 'Voted' ELSE 'Not Voted' END as vote_status,
+                            MIN(v.voted_at) as voted_at
                         FROM users u 
-                        LEFT JOIN votes v ON u.id = v.voter_id 
-                        WHERE u.role = 'voter' 
+                        LEFT JOIN votes v ON u.id = v.user_id 
+                        WHERE u.role = 'voter'
+                        GROUP BY u.id 
                         ORDER BY u.student_id ASC";
                 break;
                 
             case 'candidates_summary':
                 $reportTitle = 'Candidates Summary Report';
                 $sql = "SELECT 'Main Organization' as org_type, id, 
-                               CONCAT(last_name, ', ', first_name, ' ', middle_name) as full_name,
+                               CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_name, '')) as full_name,
                                organization as organization, position, status, filing_date
                         FROM main_org_candidates
                         UNION ALL
                         SELECT 'Sub Organization' as org_type, id,
-                               CONCAT(last_name, ', ', first_name, ' ', middle_name) as full_name,
-                               organization as organization, year as position, status, filing_date
+                               CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_name, '')) as full_name,
+                               organization as organization, position, status, filing_date
                         FROM sub_org_candidates
                         ORDER BY filing_date DESC";
                 break;
                 
             case 'voting_activity':
                 $reportTitle = 'Voting Activity Report';
+                // FIXED: Changed vote_date to voted_at
                 $sql = "SELECT 
-                            DATE(v.vote_date) as vote_date,
-                            COUNT(*) as votes_count,
-                            HOUR(v.vote_date) as vote_hour
+                            DATE(v.voted_at) as vote_date,
+                            COUNT(DISTINCT v.user_id) as unique_voters,
+                            COUNT(*) as total_votes,
+                            HOUR(v.voted_at) as vote_hour
                         FROM votes v 
-                        GROUP BY DATE(v.vote_date), HOUR(v.vote_date)
+                        GROUP BY DATE(v.voted_at), HOUR(v.voted_at)
                         ORDER BY vote_date DESC, vote_hour ASC";
                 break;
                 
@@ -87,12 +116,12 @@ class ReportController {
     private function generateCompleteElectionReport() {
         $data = [];
         
-        // Voters statistics
+        // Voters statistics - FIXED: Changed voter_id to user_id and vote_date to voted_at
         $votersResult = $this->conn->query("SELECT 
-            COUNT(*) as total_voters,
-            COUNT(CASE WHEN v.vote_date IS NOT NULL THEN 1 END) as voted_count
+            COUNT(DISTINCT u.id) as total_voters,
+            COUNT(DISTINCT v.user_id) as voted_count
             FROM users u 
-            LEFT JOIN votes v ON u.id = v.voter_id 
+            LEFT JOIN votes v ON u.id = v.user_id 
             WHERE u.role = 'voter'");
         $data['voters_stats'] = $votersResult->fetch_assoc();
         
@@ -106,14 +135,15 @@ class ReportController {
         $scheduleResult = $this->conn->query("SELECT * FROM voting_schedule ORDER BY updated_at DESC LIMIT 1");
         $data['schedule'] = $scheduleResult ? $scheduleResult->fetch_assoc() : null;
         
-        // Daily voting activity
+        // Daily voting activity - FIXED: Changed vote_date to voted_at
         $activityResult = $this->conn->query("SELECT 
-            DATE(vote_date) as vote_date, 
-            COUNT(*) as votes_count 
+            DATE(voted_at) as vote_date, 
+            COUNT(DISTINCT user_id) as unique_voters,
+            COUNT(*) as total_votes 
             FROM votes 
-            GROUP BY DATE(vote_date) 
+            GROUP BY DATE(voted_at) 
             ORDER BY vote_date DESC");
-        $data['daily_activity'] = $activityResult->fetch_all(MYSQLI_ASSOC);
+        $data['daily_activity'] = $activityResult ? $activityResult->fetch_all(MYSQLI_ASSOC) : [];
         
         return $data;
     }

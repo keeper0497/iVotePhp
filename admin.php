@@ -81,11 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['fil
 
 // Voting Schedule Management
 if (isset($_POST['updateVotingSchedule'])) {
+    // Check if reset_votes checkbox is checked (only for closed status)
+    $resetVotes = (isset($_POST['reset_votes']) && $_POST['reset_votes'] === '1');
+    
     $result = $votingController->updateSchedule(
-        $_POST['voting_status'],
+        $_POST['voting_status'] ?? 'closed',
         $_POST['start_date'] ?? null,
         $_POST['end_date'] ?? null,
-        $_POST['description'] ?? ''
+        $_POST['description'] ?? '',
+        $resetVotes
     );
     $message = $result['message'];
     $messageType = $result['success'] ? 'success' : 'error';
@@ -122,6 +126,27 @@ if (isset($_POST['exportReport']) && isset($_SESSION['report_data'])) {
     }
 }
 
+// Add new handler for manual reset all votes
+if (isset($_POST['resetAllVotes'])) {
+    if (isset($_POST['confirm_reset']) && $_POST['confirm_reset'] === 'yes') {
+        $result = $votingController->resetAllVotes();
+        $message = $result['message'];
+        $messageType = $result['success'] ? 'success' : 'error';
+    } else {
+        $message = "Reset cancelled. Confirmation required.";
+        $messageType = 'error';
+    }
+}
+
+// Update the existing Reset Vote handler (for single user)
+if (isset($_POST['resetVote'])) {
+    $userId = intval($_POST['resetVote']);
+    
+    $result = $votingController->resetUserVote($userId);
+    $message = $result['message'];
+    $messageType = $result['success'] ? 'success' : 'error';
+}
+
 // ------------------- FETCH DATA FOR VIEWS -------------------
 
 // Get all data needed for views
@@ -129,7 +154,7 @@ $allUsers = $userController->getAllUsers();
 $mainFilings = $filingController->getMainFilings();
 $subFilings = $filingController->getSubFilings();
 // $voters = $userController->getVoters(); // Keep this for vote status tracking
-$votersWithStatus = $userController->getVotersWithStatus(); // <- ADD THIS NEW LINE
+$votersWithStatus = $userController->getVotersWithStatus();
 $votingSchedule = $votingController->getCurrentSchedule();
 $dashboardStats = $dashboardController->getDashboardStats();
 
