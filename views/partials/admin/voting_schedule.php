@@ -126,7 +126,7 @@
                 <form method="POST" style="display:inline;" onsubmit="return confirmQuickClose()">
                     <input type="hidden" name="voting_status" value="closed">
                     <input type="hidden" name="start_date" value="<?= date('Y-m-d\TH:i') ?>">
-                    <input type="hidden" name="end_date" value="<?= date('Y-m-d\TH:i') ?>">
+                    <input type="hidden" name="end_date" value="<?= date('Y-m-d\TH:i', strtotime('+1 minute')) ?>">
                     <input type="hidden" name="description" value="Voting closed by admin">
                     <input type="hidden" name="reset_votes" value="1">
                     <button type="submit" name="updateVotingSchedule" class="btn" style="background-color: #dc2626; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer;">

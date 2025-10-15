@@ -151,12 +151,17 @@ function setAction(act) {
 // =============== VOTING SCHEDULE ===============
 function emergencyClose() {
     if (confirm("Are you sure you want to immediately close voting? This action will stop all ongoing voting.")) {
+        const now = new Date();
+        const startDate = now.toISOString().slice(0, 16);
+        // Set end date to 1 minute after start date to satisfy validation
+        const endDate = new Date(now.getTime() + 60000).toISOString().slice(0, 16);
+        
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = `
             <input type="hidden" name="voting_status" value="closed">
-            <input type="hidden" name="start_date" value="${new Date().toISOString().slice(0, 16)}">
-            <input type="hidden" name="end_date" value="${new Date().toISOString().slice(0, 16)}">
+            <input type="hidden" name="start_date" value="${startDate}">
+            <input type="hidden" name="end_date" value="${endDate}">
             <input type="hidden" name="description" value="Emergency closure by admin">
             <input type="hidden" name="updateVotingSchedule" value="1">
         `;
