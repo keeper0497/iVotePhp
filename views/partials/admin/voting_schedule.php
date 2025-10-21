@@ -95,7 +95,7 @@
         </div>
 
         <!-- Manual Reset All Votes -->
-        <div class="danger-zone" style="background: #fee2e2; border: 2px solid #dc2626; border-radius: 12px; padding: 20px; margin-top: 20px;">
+        <!-- <div class="danger-zone" style="background: #fee2e2; border: 2px solid #dc2626; border-radius: 12px; padding: 20px; margin-top: 20px;">
             <h3 style="color: #991b1b; margin-bottom: 15px;">⚠️ Danger Zone</h3>
             <p style="color: #991b1b; margin-bottom: 15px;">
                 <strong>Reset All Votes:</strong> This will permanently delete ALL votes from the database. This action cannot be undone!
@@ -107,7 +107,7 @@
             <p style="color: #991b1b; margin-top: 10px; font-size: 0.9rem;">
                 Current votes in database: <strong><?= $votingController->getTotalVotesCount() ?></strong>
             </p>
-        </div>
+        </div> -->
 
         <!-- Quick Actions -->
         <div class="quick-actions" style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 12px; padding: 20px; margin-top: 20px;">

@@ -63,7 +63,7 @@ class ReportController {
                         UNION ALL
                         SELECT 'Sub Organization' as org_type, id,
                                CONCAT(last_name, ', ', first_name, ' ', COALESCE(middle_name, '')) as full_name,
-                               organization as organization, position, status, filing_date
+                               organization as organization, position_sub, status, filing_date
                         FROM sub_org_candidates
                         ORDER BY filing_date DESC";
                 break;

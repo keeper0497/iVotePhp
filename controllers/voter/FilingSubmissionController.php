@@ -9,7 +9,7 @@
         }
         
         public function submitMainOrgFiling($userId, $postData, $files) {
-            // require_once __DIR__ . '/../../helpers/voter/FileHelper.php'; 
+            require_once __DIR__ . '/../../helpers/voter/FileHelper.php'; 
             
             $uploadDir = "uploads/";
             

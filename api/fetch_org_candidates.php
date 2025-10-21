@@ -74,22 +74,26 @@ if ($isMainOrg) {
             ORDER BY m.position, total_votes DESC";
 } else {
     // SUB ORGANIZATION QUERY
-    // Key: votes.position stores the ORGANIZATION NAME for sub orgs
+    // FIXED: Use position_sub field and proper vote counting
     $sql = "SELECT 
                 s.id,
                 s.first_name,
                 s.middle_name,
                 s.last_name,
-                COALESCE(s.year, 'Representative') as position,
+                s.position_sub as position,
                 s.organization,
-                COUNT(v.id) as total_votes
+                COALESCE(vote_counts.total_votes, 0) as total_votes
             FROM sub_org_candidates s
-            LEFT JOIN votes v ON s.id = v.candidate_id 
-                AND v.organization_type = 'Sub'
-                AND v.position = s.organization
+            LEFT JOIN (
+                SELECT 
+                    candidate_id,
+                    COUNT(*) as total_votes
+                FROM votes 
+                WHERE organization_type = 'Sub'
+                GROUP BY candidate_id
+            ) vote_counts ON s.id = vote_counts.candidate_id
             WHERE s.status = 'Accepted' AND s.organization = ?
-            GROUP BY s.id
-            ORDER BY s.organization, total_votes DESC";
+            ORDER BY s.position_sub, s.last_name";
 }
 
 $stmt = $conn->prepare($sql);

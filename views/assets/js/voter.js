@@ -195,38 +195,403 @@ if (collegeSelect && programSelect) {
     });
 }
 
-// =============== VOTE SUBMISSION ===============
-// ============================================
-// OPTIONAL FIX 3: Update voter.js to ensure button value is sent
-// ============================================
+// =============== ENHANCED VOTING SYSTEM ===============
+// Multiple Selection Voting Manager
+class VotingManager {
+    constructor() {
+        // Get position limits from global variable set by PHP
+        this.positionLimits = window.positionLimits || {
+            'Senators': 8,
+            'Legislator': 2,
+            'Representative': 8
+        };
+        this.init();
+    }
+    
+    init() {
+        this.setupCheckboxValidation();
+        this.setupFormValidation();
+        this.setupVisualFeedback();
+        this.setupHelpTooltips();
+        this.addCustomStyles();
+    }
+    
+    setupCheckboxValidation() {
+        document.querySelectorAll('.candidate-input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                this.handleCheckboxChange(e.target);
+            });
+        });
+    }
+    
+    handleCheckboxChange(checkbox) {
+        const position = checkbox.dataset.position;
+        const limit = this.positionLimits[position] || 1;
+        const positionContainer = document.querySelector(`[data-position="${position}"]`);
+        
+        if (!positionContainer) return;
+        
+        const checkboxes = positionContainer.querySelectorAll('.candidate-input[type="checkbox"]');
+        const counter = positionContainer.querySelector('.selection-counter .count');
+        const validationMessage = positionContainer.querySelector('.validation-message');
+        const selectionCounter = positionContainer.querySelector('.selection-counter');
+        
+        let checkedCount = 0;
+        checkboxes.forEach(cb => {
+            if (cb.checked) checkedCount++;
+        });
+        
+        // Update counter with color coding
+        if (counter) {
+            counter.textContent = checkedCount;
+            if (selectionCounter) {
+                selectionCounter.style.borderLeft = checkedCount > 0 ? '4px solid #059669' : '4px solid #e5e7eb';
+                
+                if (checkedCount === limit) {
+                    selectionCounter.style.background = '#fef3c7';
+                    selectionCounter.style.color = '#92400e';
+                } else if (checkedCount > 0) {
+                    selectionCounter.style.background = '#e6fffa';
+                    selectionCounter.style.color = '#065f46';
+                } else {
+                    selectionCounter.style.background = '#f1f5f9';
+                    selectionCounter.style.color = '#475569';
+                }
+            }
+        }
+        
+        // Handle limit exceeded
+        if (checkedCount > limit) {
+            checkbox.checked = false;
+            checkedCount--;
+            if (counter) counter.textContent = checkedCount;
+            
+            this.showValidationMessage(validationMessage, position, limit);
+            this.showToast(`Maximum ${limit} selections allowed for ${position}`, 'warning');
+            return;
+        }
+        
+        // Update visual feedback for all checkboxes in this position
+        this.updateVisualFeedback(checkboxes, checkedCount, limit);
+        
+        // Hide validation message if visible
+        if (validationMessage && validationMessage.style.display !== 'none') {
+            validationMessage.style.display = 'none';
+        }
+        
+        // Update submit button state
+        this.updateSubmitButtonState();
+    }
+    
+    updateVisualFeedback(checkboxes, checkedCount, limit) {
+        checkboxes.forEach(cb => {
+            const candidateOption = cb.closest('.candidate-option');
+            
+            if (cb.checked) {
+                candidateOption.style.background = '#e0f2fe';
+                candidateOption.style.borderColor = '#0ea5e9';
+                candidateOption.style.transform = 'translateX(3px)';
+            } else {
+                candidateOption.style.background = '';
+                candidateOption.style.borderColor = '#e5e7eb';
+                candidateOption.style.transform = '';
+                
+                // If limit reached, dim non-selected options
+                if (checkedCount >= limit) {
+                    candidateOption.style.opacity = '0.6';
+                    cb.disabled = true;
+                } else {
+                    candidateOption.style.opacity = '';
+                    cb.disabled = false;
+                }
+            }
+        });
+    }
+    
+    showValidationMessage(validationElement, position, limit) {
+        if (validationElement) {
+            validationElement.style.display = 'block';
+            validationElement.style.animation = 'shake 0.5s ease-in-out';
+            
+            setTimeout(() => {
+                validationElement.style.animation = '';
+                validationElement.style.display = 'none';
+            }, 3000);
+        }
+    }
+    
+    setupFormValidation() {
+        const form = document.getElementById('votingForm');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                if (!this.validateForm()) {
+                    e.preventDefault();
+                }
+            });
+        }
+    }
+    
+    validateForm() {
+        const errors = [];
+        let hasAnyVote = false;
+        
+        // Check each multi-select position
+        Object.keys(this.positionLimits).forEach(position => {
+            const positionContainer = document.querySelector(`[data-position="${position}"]`);
+            if (positionContainer) {
+                const checkboxes = positionContainer.querySelectorAll('.candidate-input[type="checkbox"]:checked');
+                const limit = this.positionLimits[position];
+                
+                if (checkboxes.length > limit) {
+                    errors.push(`Too many candidates selected for ${position}. Maximum allowed: ${limit}`);
+                }
+                
+                if (checkboxes.length > 0) {
+                    hasAnyVote = true;
+                }
+            }
+        });
+        
+        // Check radio buttons for any votes
+        const radioButtons = document.querySelectorAll('input[type="radio"]:checked');
+        if (radioButtons.length > 0) {
+            hasAnyVote = true;
+        }
+        
+        if (!hasAnyVote) {
+            errors.push('Please select at least one candidate before submitting your vote.');
+        }
+        
+        if (errors.length > 0) {
+            this.showToast(errors.join('\n'), 'error');
+            return false;
+        }
+        
+        // Show confirmation dialog
+        return this.showConfirmationDialog();
+    }
+    
+    showConfirmationDialog() {
+        const selectedCandidates = this.getSelectedCandidates();
+        let message = "Please confirm your votes:\n\n";
+        
+        selectedCandidates.forEach(selection => {
+            message += `${selection.position}: ${selection.candidates.join(', ')}\n`;
+        });
+        
+        message += "\nOnce submitted, your vote cannot be changed.\n\nDo you want to proceed?";
+        
+        return confirm(message);
+    }
+    
+    getSelectedCandidates() {
+        const selections = [];
+        
+        // Get checkbox selections
+        Object.keys(this.positionLimits).forEach(position => {
+            const positionContainer = document.querySelector(`[data-position="${position}"]`);
+            if (positionContainer) {
+                const checkboxes = positionContainer.querySelectorAll('.candidate-input[type="checkbox"]:checked');
+                if (checkboxes.length > 0) {
+                    const candidates = Array.from(checkboxes).map(cb => {
+                        return cb.closest('.candidate-option').querySelector('label strong').textContent;
+                    });
+                    selections.push({
+                        position: position,
+                        candidates: candidates
+                    });
+                }
+            }
+        });
+        
+        // Get radio button selections
+        const radioButtons = document.querySelectorAll('input[type="radio"]:checked');
+        radioButtons.forEach(radio => {
+            const candidateName = radio.closest('.candidate-option').querySelector('label strong').textContent;
+            const positionText = radio.closest('.candidate-group').querySelector('h4').textContent.split('\n')[0]; // Get only position name
+            selections.push({
+                position: positionText,
+                candidates: [candidateName]
+            });
+        });
+        
+        return selections;
+    }
+    
+    updateSubmitButtonState() {
+        const submitBtn = document.getElementById('submitVoteBtn');
+        if (!submitBtn) return;
+        
+        const hasAnySelection = 
+            document.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked').length > 0;
+        
+        if (hasAnySelection) {
+            submitBtn.style.background = 'linear-gradient(135deg, #059669, #0ea5e9)';
+            submitBtn.style.transform = 'scale(1.02)';
+            submitBtn.innerHTML = '🗳️ Submit My Vote';
+        } else {
+            submitBtn.style.background = 'linear-gradient(135deg, #0ea5e9, #3b82f6)';
+            submitBtn.style.transform = '';
+            submitBtn.innerHTML = '🗳️ Submit My Vote';
+        }
+    }
+    
+    setupVisualFeedback() {
+        // Setup hover effects for candidate options
+        document.querySelectorAll('.candidate-option').forEach(option => {
+            option.addEventListener('mouseenter', () => {
+                const input = option.querySelector('input');
+                if (!input.disabled) {
+                    option.style.background = '#f8fafc';
+                    option.style.borderColor = '#0ea5e9';
+                }
+            });
+            
+            option.addEventListener('mouseleave', () => {
+                const input = option.querySelector('input');
+                if (!input.checked) {
+                    option.style.background = '';
+                    option.style.borderColor = '#e5e7eb';
+                }
+            });
+        });
+        
+        // Setup radio button change handlers
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                this.updateSubmitButtonState();
+            });
+        });
+    }
+    
+    setupHelpTooltips() {
+        // Add help icons for multi-select positions
+        Object.keys(this.positionLimits).forEach(position => {
+            const positionContainer = document.querySelector(`[data-position="${position}"]`);
+            if (positionContainer && this.positionLimits[position] > 1) {
+                const header = positionContainer.querySelector('h4');
+                if (header) {
+                    const helpIcon = document.createElement('span');
+                    helpIcon.innerHTML = ' ℹ️';
+                    helpIcon.style.cursor = 'help';
+                    helpIcon.title = `You can select up to ${this.positionLimits[position]} candidates for this position.`;
+                    header.appendChild(helpIcon);
+                }
+            }
+        });
+    }
+    
+    showToast(message, type = 'info') {
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 10000;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        switch(type) {
+            case 'error':
+                toast.style.background = '#dc2626';
+                break;
+            case 'warning':
+                toast.style.background = '#d97706';
+                break;
+            case 'success':
+                toast.style.background = '#059669';
+                break;
+            default:
+                toast.style.background = '#0ea5e9';
+        }
+        
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+    
+    addCustomStyles() {
+        // Add CSS animations if not already present
+        if (!document.getElementById('voting-styles')) {
+            const style = document.createElement('style');
+            style.id = 'voting-styles';
+            style.textContent = `
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
+                }
+                
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+                
+                .candidate-option {
+                    transition: all 0.2s ease;
+                }
+                
+                .selection-counter {
+                    transition: all 0.3s ease;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+}
 
-// Find the voting form submission handler and update it:
-
+// =============== ORIGINAL VOTE SUBMISSION (FALLBACK) ===============
 const votingForm = document.getElementById('votingForm');
 if (votingForm) {
-    votingForm.addEventListener('submit', function(e) {
-        const radios = votingForm.querySelectorAll('input[type="radio"]:checked');
-        
-        if (radios.length === 0) {
-            e.preventDefault();
-            alert('Please select at least one candidate before submitting your vote.');
-            return false;
-        }
-        
-        if (!confirm('Are you sure you want to submit your vote?\n\nThis action is FINAL and cannot be undone.')) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Don't prevent default or disable button - let form submit normally
-        const btn = votingForm.querySelector('button[name="submitVote"]');
-        if (btn) {
-            btn.innerHTML = 'Submitting...';
-        }
-        
-        // Allow form to submit normally
-        return true;
-    });
+    // Remove any existing listeners and add enhanced one
+    const existingHandler = votingForm.onsubmit;
+    votingForm.onsubmit = null;
+    
+    // The VotingManager will handle this, but keep a fallback for basic functionality
+    if (!window.positionLimits) {
+        votingForm.addEventListener('submit', function(e) {
+            const inputs = votingForm.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
+            
+            if (inputs.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one candidate before submitting your vote.');
+                return false;
+            }
+            
+            if (!confirm('Are you sure you want to submit your vote?\n\nThis action is FINAL and cannot be undone.')) {
+                e.preventDefault();
+                return false;
+            }
+            
+            const btn = votingForm.querySelector('button[name="submitVote"]');
+            if (btn) {
+                btn.innerHTML = 'Submitting...';
+            }
+            
+            return true;
+        });
+    }
 }
 
 // =============== VOTE TALLY ===============
@@ -312,4 +677,12 @@ window.onload = function() {
     
     // Show dashboard by default
     showSection('dashboard');
+    
+    // Initialize enhanced voting system if position limits are available
+    if (window.positionLimits && Object.keys(window.positionLimits).length > 0) {
+        new VotingManager();
+        console.log('Enhanced voting system initialized with position limits:', window.positionLimits);
+    } else {
+        console.log('Using basic voting system - no position limits defined');
+    }
 };
