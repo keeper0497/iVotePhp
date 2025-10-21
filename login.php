@@ -52,8 +52,8 @@ if (empty($email) || empty($studentid) || empty($password)) {
     exit;
 }
 
-// Query to find user (removed college as it doesn't exist in users table)
-$sql = "SELECT id, email, student_id, password, role FROM users WHERE (email = ? OR student_id = ?) LIMIT 1";
+// UPDATED: Query to find user and include status field
+$sql = "SELECT id, email, student_id, password, role, status FROM users WHERE (email = ? OR student_id = ?) LIMIT 1";
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
     error_log("Prepare failed: " . $conn->error);
@@ -67,6 +67,17 @@ $result = $stmt->get_result();
 
 if ($result->num_rows === 1) {
     $user = $result->fetch_assoc();
+    
+    // ADDED: Check if user account is deactivated
+    if ($user['status'] === 'deactivated') {
+        error_log("Login attempt by deactivated user: email=$email, studentid=$studentid, user_id={$user['id']}");
+        header('Content-Type: application/json');
+        echo json_encode([
+            "status" => "error", 
+            "message" => "Your account has been deactivated. Please contact the administrator for assistance."
+        ]);
+        exit;
+    }
     
     // Get college info if user is a candidate
     $college = 'N/A';
@@ -97,7 +108,7 @@ if ($result->num_rows === 1) {
         $_SESSION['role'] = $user['role'];
         $_SESSION['otp_expiry'] = time() + 300; // OTP expires in 5 minutes
         
-        error_log("Session set: user_id={$user['id']}, email={$user['email']}, role={$user['role']}, college=$college, otp=$otp");
+        error_log("Session set: user_id={$user['id']}, email={$user['email']}, role={$user['role']}, college=$college, otp=$otp, status={$user['status']}");
         
         // Send OTP via email
         $mail = new PHPMailer(true);
@@ -143,7 +154,8 @@ if ($result->num_rows === 1) {
                             <p style='font-size: 12px; color: #777;'>
                                 <strong>Student ID:</strong> " . htmlspecialchars($user['student_id']) . "<br>
                                 <strong>Role:</strong> " . htmlspecialchars(ucfirst($user['role'])) . "<br>
-                                <strong>College:</strong> " . htmlspecialchars($college) . "
+                                <strong>College:</strong> " . htmlspecialchars($college) . "<br>
+                                <strong>Account Status:</strong> " . htmlspecialchars(ucfirst($user['status'])) . "
                             </p>
                             <p style='font-size: 12px; color: #777;'>© " . date('Y') . " iVote - CatSU Student Elections</p>
                         </div>
@@ -155,10 +167,11 @@ if ($result->num_rows === 1) {
                              "Student ID: " . htmlspecialchars($user['student_id']) . "\n" .
                              "Role: " . htmlspecialchars(ucfirst($user['role'])) . "\n" .
                              "College: " . htmlspecialchars($college) . "\n" .
+                             "Account Status: " . htmlspecialchars(ucfirst($user['status'])) . "\n" .
                              "If you did not request this, please ignore this email.";
             
             if ($mail->send()) {
-                error_log("OTP email sent successfully to {$user['email']}");
+                error_log("OTP email sent successfully to {$user['email']} (active user)");
                 header('Content-Type: application/json');
                 echo json_encode([
                     "status" => "success",

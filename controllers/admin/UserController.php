@@ -11,7 +11,7 @@ class UserController {
     public function addUser($email, $student_id, $password, $role, $college) {
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         
-        $stmt = $this->conn->prepare("INSERT INTO users (email, student_id, password, role, college) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $this->conn->prepare("INSERT INTO users (email, student_id, password, role, college, status) VALUES (?, ?, ?, ?, ?, 'active')");
         
         if (!$stmt) {
             return ['success' => false, 'message' => "Prepare failed: " . $this->conn->error];
@@ -50,8 +50,8 @@ class UserController {
         return $result;
     }
     
-    public function deleteUser($id) {
-        $stmt = $this->conn->prepare("DELETE FROM users WHERE id=?");
+    public function deactivateUser($id) {
+        $stmt = $this->conn->prepare("UPDATE users SET status='deactivated' WHERE id=?");
         
         if (!$stmt) {
             return ['success' => false, 'message' => "Prepare failed: " . $this->conn->error];
@@ -60,17 +60,42 @@ class UserController {
         $stmt->bind_param("i", $id);
         
         if (!$stmt->execute()) {
-            $result = ['success' => false, 'message' => "Error deleting user: " . $stmt->error];
+            $result = ['success' => false, 'message' => "Error deactivating user: " . $stmt->error];
         } else {
-            $result = ['success' => true, 'message' => "User deleted successfully!"];
+            $result = ['success' => true, 'message' => "User deactivated successfully!"];
         }
         
         $stmt->close();
         return $result;
     }
     
-    public function getAllUsers() {
-        $result = $this->conn->query("SELECT * FROM users");
+    public function reactivateUser($id) {
+        $stmt = $this->conn->prepare("UPDATE users SET status='active' WHERE id=?");
+        
+        if (!$stmt) {
+            return ['success' => false, 'message' => "Prepare failed: " . $this->conn->error];
+        }
+        
+        $stmt->bind_param("i", $id);
+        
+        if (!$stmt->execute()) {
+            $result = ['success' => false, 'message' => "Error reactivating user: " . $stmt->error];
+        } else {
+            $result = ['success' => true, 'message' => "User reactivated successfully!"];
+        }
+        
+        $stmt->close();
+        return $result;
+    }
+    
+    public function getAllUsers($includeDeactivated = true) {
+        if ($includeDeactivated) {
+            $sql = "SELECT * FROM users ORDER BY status ASC, id ASC";
+        } else {
+            $sql = "SELECT * FROM users WHERE status = 'active' ORDER BY id ASC";
+        }
+        
+        $result = $this->conn->query($sql);
         
         if (!$result) {
             return [];
@@ -80,12 +105,12 @@ class UserController {
     }
     
     public function getVoters() {
-        $sql = "SELECT u.id, u.email, u.student_id, u.role, u.college, 
+        $sql = "SELECT u.id, u.email, u.student_id, u.role, u.college, u.status,
                        MAX(v.vote_date) as voted_at 
                 FROM users u 
-                LEFT JOIN votes v ON u.id = v.users_id 
-                WHERE u.role = 'voter' 
-                GROUP BY u.id, u.email, u.student_id, u.role, u.college
+                LEFT JOIN votes v ON u.id = v.user_id 
+                WHERE u.role = 'voter' AND u.status = 'active'
+                GROUP BY u.id, u.email, u.student_id, u.role, u.college, u.status
                 ORDER BY u.student_id ASC";
         
         $result = $this->conn->query($sql);
@@ -104,6 +129,7 @@ class UserController {
                     u.email,
                     u.college,
                     u.role,
+                    u.status,
                     CASE 
                         WHEN v.user_id IS NOT NULL THEN 1 
                         ELSE 0 
@@ -115,7 +141,7 @@ class UserController {
                     FROM votes
                     GROUP BY user_id
                 ) v ON u.id = v.user_id
-                WHERE u.role = 'voter'
+                WHERE u.role = 'voter' AND u.status = 'active'
                 GROUP BY u.id
                 ORDER BY u.id ASC";
         
@@ -133,6 +159,27 @@ class UserController {
         
         return $voters;
     }
-
+    
+    public function getUserStats() {
+        $stats = [];
+        
+        // Total active users
+        $result = $this->conn->query("SELECT COUNT(*) as count FROM users WHERE status = 'active'");
+        $stats['active_users'] = $result ? $result->fetch_assoc()['count'] : 0;
+        
+        // Total deactivated users
+        $result = $this->conn->query("SELECT COUNT(*) as count FROM users WHERE status = 'deactivated'");
+        $stats['deactivated_users'] = $result ? $result->fetch_assoc()['count'] : 0;
+        
+        // Active voters
+        $result = $this->conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'voter' AND status = 'active'");
+        $stats['active_voters'] = $result ? $result->fetch_assoc()['count'] : 0;
+        
+        // Active admins
+        $result = $this->conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin' AND status = 'active'");
+        $stats['active_admins'] = $result ? $result->fetch_assoc()['count'] : 0;
+        
+        return $stats;
+    }
 }
 ?>

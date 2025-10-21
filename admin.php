@@ -67,6 +67,36 @@ if (isset($_POST['deleteUser'])) {
     $messageType = $result['success'] ? 'success' : 'error';
 }
 
+// Handle Deactivate User
+if (isset($_POST['deactivateUser'])) {
+    $id = intval($_POST['id']);
+    
+    // Prevent deactivating the current admin user
+    if ($id === $_SESSION['user_id']) {
+        $_SESSION['message'] = "You cannot deactivate your own account.";
+        $_SESSION['messageType'] = 'error';
+    } else {
+        $result = $userController->deactivateUser($id);
+        $_SESSION['message'] = $result['message'];
+        $_SESSION['messageType'] = $result['success'] ? 'success' : 'error';
+    }
+    
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Handle Reactivate User
+if (isset($_POST['reactivateUser'])) {
+    $id = intval($_POST['id']);
+    
+    $result = $userController->reactivateUser($id);
+    $_SESSION['message'] = $result['message'];
+    $_SESSION['messageType'] = $result['success'] ? 'success' : 'error';
+    
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
 // Filing Management
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['filing_id'], $_POST['type'])) {
     $result = $filingController->updateFilingStatus(
@@ -150,7 +180,7 @@ if (isset($_POST['resetVote'])) {
 // ------------------- FETCH DATA FOR VIEWS -------------------
 
 // Get all data needed for views
-$allUsers = $userController->getAllUsers();
+$allUsers = $userController->getAllUsers(true);
 $mainFilings = $filingController->getMainFilings();
 $subFilings = $filingController->getSubFilings();
 // $voters = $userController->getVoters(); // Keep this for vote status tracking
