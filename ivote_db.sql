@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 15, 2025 at 05:18 AM
+-- Generation Time: Dec 11, 2025 at 10:43 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -20,6 +20,29 @@ SET time_zone = "+00:00";
 --
 -- Database: `ivote_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `filing_schedule`
+--
+
+CREATE TABLE `filing_schedule` (
+  `id` int(11) NOT NULL,
+  `status` enum('open','closed') NOT NULL DEFAULT 'closed',
+  `start_date` datetime NOT NULL,
+  `end_date` datetime NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ;
+
+--
+-- Dumping data for table `filing_schedule`
+--
+
+INSERT INTO `filing_schedule` (`id`, `status`, `start_date`, `end_date`, `description`, `created_at`, `updated_at`) VALUES
+(1, 'closed', '2025-12-11 21:12:18', '2025-12-11 22:12:18', 'Default filing schedule - update as needed', '2025-12-11 13:12:18', '2025-12-11 13:12:18');
 
 -- --------------------------------------------------------
 
@@ -68,7 +91,11 @@ CREATE TABLE `main_org_candidates` (
 --
 
 INSERT INTO `main_org_candidates` (`id`, `user_id`, `organization`, `profile_pic`, `last_name`, `first_name`, `middle_name`, `nickname`, `age`, `gender`, `dob`, `college`, `year`, `program`, `phone`, `email`, `position`, `partylist`, `permanent_address`, `temporary_address`, `residency_years`, `residency_semesters`, `semester_year`, `certificate_of_candidacy`, `comelec_form_1`, `recommendation_letter`, `prospectus`, `clearance`, `coe`, `created_at`, `status`, `filing_date`, `comment`) VALUES
-(5, 27, 'USC', 'uploads/1760287813_68ebdc45d7765_ModelLifecycle.jpeg', 'Smith', 'Jhon', 'Pogi', 'Pogi', 32, 'Male', '1992-12-12', 'CICT', 3, 'Bachelor of Science in Information Systems', '09517232406', 'user01@yopmail.com', 'President', 'Party Partylist', 'werw', 'qwe', 3, 2, '2nd/2025', 'uploads/1760287813_68ebdc45d8715_ModelLifecycle.jpeg', 'uploads/1760287813_68ebdc45d7b1e_ModelLifecycle.jpeg', 'uploads/1760287813_68ebdc45d7d8f_ModelLifecycle.jpeg', 'uploads/1760287813_68ebdc45d805f_JR OB slip.pdf', 'uploads/1760287813_68ebdc45d8274_JR OB slip.pdf', 'uploads/1760287813_68ebdc45d8437_JR OB slip.pdf', '2025-10-12 16:50:13', 'Accepted', '2025-10-13 00:50:13', '');
+(5, 27, 'USC', 'uploads/1760287813_68ebdc45d7765_ModelLifecycle.jpeg', 'Smith', 'Jhon', 'Pogi', 'Pogi', 32, 'Male', '1992-12-12', 'CICT', 3, 'Bachelor of Science in Information Systems', '09517232406', 'user01@yopmail.com', 'President', 'Party Partylist', 'werw', 'qwe', 3, 2, '2nd/2025', 'uploads/1760287813_68ebdc45d8715_ModelLifecycle.jpeg', 'uploads/1760287813_68ebdc45d7b1e_ModelLifecycle.jpeg', 'uploads/1760287813_68ebdc45d7d8f_ModelLifecycle.jpeg', 'uploads/1760287813_68ebdc45d805f_JR OB slip.pdf', 'uploads/1760287813_68ebdc45d8274_JR OB slip.pdf', 'uploads/1760287813_68ebdc45d8437_JR OB slip.pdf', '2025-10-12 16:50:13', 'Accepted', '2025-10-13 00:50:13', ''),
+(6, 27, 'USC', 'uploads/1761030753_68f732617ee37_ModelLifecycle.jpeg', 'Smith', 'Jhon', 'Pogi', 'Pogi', 27, 'Male', '1997-12-12', 'CICT', 3, 'Bachelor of Science in Information Technology', '09517232406', 'user01@yopmail.com', 'Finance Secretary', 'Party Partylist', 'qr ewf', 'ewr wef', 3, 2, '2nd/2025', 'uploads/1761030753_68f732617fd68_ModelLifecycle.jpeg', 'uploads/1761030753_68f732617f1d9_ModelLifecycle.jpeg', 'uploads/1761030753_68f732617f414_ModelLifecycle.jpeg', 'uploads/1761030753_68f732617f5f5_JR OB slip.pdf', 'uploads/1761030753_68f732617f953_JR OB slip.pdf', 'uploads/1761030753_68f732617fb34_JR OB slip.pdf', '2025-10-21 07:12:33', 'Accepted', '2025-10-21 15:12:33', ''),
+(7, 27, 'USC', 'uploads/1761050800_68f780b0b6b11_image.png', 'Que', 'April Karla', 'Villafuerte', 'boss', 27, 'Male', '1997-12-12', 'CICT', 1, 'Bachelor of Science in Entertainment and Multimedia Computing - Digital Animation', '09517232406', 'queaprilkarla@gmail.com', 'Senators', 'Party Partylist', 'sdv sd s ', 'sv s sdv', 3, 2, '2nd/2025', 'uploads/1761050800_68f780b0b7d1a_logout.jpg', 'uploads/1761050800_68f780b0b6f1e_logout.jpg', 'uploads/1761050800_68f780b0b7288_logout.jpg', 'uploads/1761050800_68f780b0b7561_JR OB slip.pdf', 'uploads/1761050800_68f780b0b7914_JR OB slip.pdf', 'uploads/1761050800_68f780b0b7b13_JR OB slip.pdf', '2025-10-21 12:46:40', 'Accepted', '2025-10-21 20:46:40', ''),
+(8, 27, 'USC', 'uploads/1761050955_68f7814b229d3_images.jpg', 'wick', 'Jhon', 'babayaga', 'wick', 26, 'Female', '1998-12-12', 'CICT', 3, 'Bachelor of Science in Computer Science', '09517232406', 'jhonreyartuz01@gmail.com', 'Senators', 'Party Partylist', 'fwe', 'ewr', 3, 2, '2nd/2025', 'uploads/1761050955_68f7814b2387c_images.jpg', 'uploads/1761050955_68f7814b22c2d_images.jpg', 'uploads/1761050955_68f7814b22dfe_images.jpg', 'uploads/1761050955_68f7814b23051_july1-31.pdf', 'uploads/1761050955_68f7814b23265_july1-31.pdf', 'uploads/1761050955_68f7814b23581_images.jpg', '2025-10-21 12:49:15', 'Accepted', '2025-10-21 20:49:15', ''),
+(9, 27, 'USC', 'uploads/1761051497_68f78369a81ab_326-3266911_avatar-last-airbender-chibi-cute-cartoon.png', 'fred', 'mark', 'tester', 'fred', 26, 'Male', '1998-11-12', 'CICT', 3, 'Bachelor of Science in Information Systems', '09517232406', 'fred@yopmail.com', 'Senators', 'Party Partylist', 'w4t', 'gsw4', 3, 2, '2nd/2025', 'uploads/1761051497_68f78369a9194_images.jpg', 'uploads/1761051497_68f78369a8418_images.jpg', 'uploads/1761051497_68f78369a867f_images.jpg', 'uploads/1761051497_68f78369a89ef_326-3266911_avatar-last-airbender-chibi-cute-cartoon.png', 'uploads/1761051497_68f78369a8cbc_326-3266911_avatar-last-airbender-chibi-cute-cartoon.png', 'uploads/1761051497_68f78369a8f20_326-3266911_avatar-last-airbender-chibi-cute-cartoon.png', '2025-10-21 12:58:17', 'Accepted', '2025-10-21 20:58:17', '');
 
 -- --------------------------------------------------------
 
@@ -111,18 +138,20 @@ CREATE TABLE `users` (
   `student_id` varchar(20) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('voter','commissioner','admin') NOT NULL,
-  `college` varchar(100) DEFAULT NULL
+  `college` varchar(100) DEFAULT NULL,
+  `status` enum('active','deactivated') NOT NULL DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `email`, `student_id`, `password`, `role`, `college`) VALUES
-(2, 'admin01@yopmail.com', '2022-00001', 'admin123', 'admin', ''),
-(18, 'user02@yopmail.com', '2022-0003', '12-08-2003', 'voter', 'CICT'),
-(27, 'user01@yopmail.com', '2022-0002', '12-08-2003', 'voter', 'CICT'),
-(43, 'commissioner01@yopmail.com', '2022-0004', '12-08-2003', 'commissioner', 'CICT');
+INSERT INTO `users` (`id`, `email`, `student_id`, `password`, `role`, `college`, `status`) VALUES
+(2, 'admin01@yopmail.com', '2022-00001', 'admin123', 'admin', '', 'active'),
+(18, 'user02@yopmail.com', '2022-0003', '12-08-2003', 'voter', 'CICT', 'active'),
+(27, 'user01@yopmail.com', '2022-0002', '12-08-2003', 'voter', 'CICT', 'active'),
+(43, 'commissioner01@yopmail.com', '2022-0004', '12-08-2003', 'commissioner', 'CICT', 'active'),
+(45, 'voter01@yopmail.com', '2022-0010', '12-08-2003', 'voter', 'CICT', 'deactivated');
 
 -- --------------------------------------------------------
 
@@ -144,8 +173,17 @@ CREATE TABLE `votes` (
 --
 
 INSERT INTO `votes` (`id`, `user_id`, `candidate_id`, `position`, `organization_type`, `voted_at`) VALUES
-(5, 27, 5, 'President', 'Main', '2025-10-14 13:49:09'),
-(6, 27, 2, 'ACCESS', 'Sub', '2025-10-14 13:49:09');
+(22, 45, 9, 'Senators_1', 'Main', '2025-10-21 13:45:43'),
+(23, 45, 8, 'Senators_2', 'Main', '2025-10-21 13:45:43'),
+(24, 45, 7, 'Senators_3', 'Main', '2025-10-21 13:45:43'),
+(25, 45, 6, 'Finance Secretary', 'Main', '2025-10-21 13:45:43'),
+(26, 45, 5, 'President', 'Main', '2025-10-21 13:45:43'),
+(27, 45, 2, 'ACCESS', 'Sub', '2025-10-21 13:45:43'),
+(28, 27, 9, 'Senators_1', 'Main', '2025-12-06 02:06:52'),
+(29, 27, 7, 'Senators_2', 'Main', '2025-12-06 02:06:52'),
+(30, 27, 6, 'Finance Secretary', 'Main', '2025-12-06 02:06:52'),
+(31, 27, 5, 'President', 'Main', '2025-12-06 02:06:52'),
+(32, 27, 2, 'ACCESS', 'Sub', '2025-12-06 02:06:52');
 
 -- --------------------------------------------------------
 
@@ -168,11 +206,20 @@ CREATE TABLE `voting_schedule` (
 --
 
 INSERT INTO `voting_schedule` (`id`, `status`, `start_date`, `end_date`, `description`, `created_at`, `updated_at`) VALUES
-(1, 'closed', '2025-10-10 03:45:00', '2025-10-15 14:45:00', 'Voting closed by admin', '2025-09-23 01:43:24', '2025-10-14 14:53:47');
+(1, 'closed', '2025-12-01 20:49:00', '2025-12-05 13:49:00', 'Voting closed by admin', '2025-09-23 01:43:24', '2025-12-11 15:12:58');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `filing_schedule`
+--
+ALTER TABLE `filing_schedule`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_filing_schedule_status` (`status`),
+  ADD KEY `idx_filing_schedule_dates` (`start_date`,`end_date`),
+  ADD KEY `idx_filing_schedule_updated` (`updated_at`);
 
 --
 -- Indexes for table `main_org_candidates`
@@ -215,10 +262,16 @@ ALTER TABLE `voting_schedule`
 --
 
 --
+-- AUTO_INCREMENT for table `filing_schedule`
+--
+ALTER TABLE `filing_schedule`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `main_org_candidates`
 --
 ALTER TABLE `main_org_candidates`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `sub_org_candidates`
@@ -230,13 +283,13 @@ ALTER TABLE `sub_org_candidates`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
 
 --
 -- AUTO_INCREMENT for table `votes`
 --
 ALTER TABLE `votes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `voting_schedule`
