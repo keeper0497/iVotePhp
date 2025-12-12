@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 11, 2025 at 10:43 PM
+-- Generation Time: Dec 12, 2025 at 05:47 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -42,7 +42,7 @@ CREATE TABLE `filing_schedule` (
 --
 
 INSERT INTO `filing_schedule` (`id`, `status`, `start_date`, `end_date`, `description`, `created_at`, `updated_at`) VALUES
-(1, 'closed', '2025-12-11 21:12:18', '2025-12-11 22:12:18', 'Default filing schedule - update as needed', '2025-12-11 13:12:18', '2025-12-11 13:12:18');
+(1, 'closed', '2025-12-12 11:29:00', '2025-12-19 11:29:00', '', '2025-12-11 13:12:18', '2025-12-12 03:29:27');
 
 -- --------------------------------------------------------
 
@@ -147,11 +147,11 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `email`, `student_id`, `password`, `role`, `college`, `status`) VALUES
-(2, 'admin01@yopmail.com', '2022-00001', 'admin123', 'admin', '', 'active'),
-(18, 'user02@yopmail.com', '2022-0003', '12-08-2003', 'voter', 'CICT', 'active'),
-(27, 'user01@yopmail.com', '2022-0002', '12-08-2003', 'voter', 'CICT', 'active'),
-(43, 'commissioner01@yopmail.com', '2022-0004', '12-08-2003', 'commissioner', 'CICT', 'active'),
-(45, 'voter01@yopmail.com', '2022-0010', '12-08-2003', 'voter', 'CICT', 'deactivated');
+(2, 'admin01@yopmail.com', '2022-00001', '$2y$10$efSDO6v/M/Qi5Spj1KpprOF7WA4IiKpPyyS/pSOHKBPRdJ5Ag5guW', 'admin', 'CICT', 'active'),
+(18, 'user02@yopmail.com', '2022-0003', '$2y$10$Fbg6qD0DxzaaFTDiTdXiROoVtu57yZMiCBborbgiSIR.JrK1ifXyu', 'voter', 'CICT', 'active'),
+(27, 'user01@yopmail.com', '2022-0002', '$2y$10$QmQZdusg.ca6bGkcYxWL9eMR2nsLXkoYRavFNhmlKm3EkitbOevB.', 'voter', 'CICT', 'active'),
+(43, 'commissioner01@yopmail.com', '2022-0004', '$2y$10$GcZvybLLWDVAremDSSmy9OZ0pwNwkLAO.m68gL0QmoFFR4lDixuAq', 'commissioner', 'CICT', 'active'),
+(45, 'voter01@yopmail.com', '2022-0010', '$2y$10$PeXAXm6JRqlfb8hiMqAG7uPoSJg5AVH1jRqbtt4gKL5pDui9lXzrG', 'voter', 'CICT', 'deactivated');
 
 -- --------------------------------------------------------
 

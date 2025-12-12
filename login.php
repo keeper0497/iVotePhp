@@ -97,7 +97,7 @@ if ($result->num_rows === 1) {
     }
     
     // Verify password (TODO: Use password_verify() for hashed passwords in production)
-    if ($password === $user['password']) {
+    if (password_verify($password, $user['password'])) {
         // Generate OTP
         $otp = rand(100000, 999999);
         
