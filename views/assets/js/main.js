@@ -7,6 +7,7 @@ const sections = {
     filing: document.getElementById("filingSection"),
     voters: document.getElementById("votersSection"),
     votingSchedule: document.getElementById("votingScheduleSection"),
+    filingSchedule: document.getElementById("filingScheduleSection"),
     reporting: document.getElementById("reportingSection")
 };
 
@@ -46,6 +47,11 @@ document.getElementById("votersBtn")?.addEventListener("click", (e) => {
 document.getElementById("votingScheduleBtn")?.addEventListener("click", (e) => {
     e.preventDefault();
     showSection("votingSchedule");
+});
+
+document.getElementById("filingScheduleBtn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    showSection("filingSchedule");
 });
 
 document.getElementById("reportingBtn")?.addEventListener("click", (e) => {
