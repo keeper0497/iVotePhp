@@ -1,3 +1,28 @@
+<?php
+// Include necessary files for public dashboard
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/controllers/public/PublicDashboardController.php';
+
+// Get public dashboard data
+try {
+    $conn = getConnection();
+    $publicController = new PublicDashboardController($conn);
+    $dashboardStats = $publicController->getPublicDashboardStats();
+    $votingSchedule = $publicController->getVotingStatus();
+    $canShowResults = true;
+    $conn->close();
+} catch (Exception $e) {
+    // Fallback stats in case of error
+    $dashboardStats = [
+        'total_voters' => 0,
+        'total_candidates' => 0,
+        'students_voted' => 0,
+        'voting_percentage' => 0
+    ];
+    $votingSchedule = ['status' => 'closed'];
+    $canShowResults = false;
+}
+?>
 <!DOCTYPE html>
 <html lang="tl">
 <head>
@@ -149,6 +174,27 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* Admin bypass indicator */
+    .admin-indicator {
+      background: linear-gradient(135deg, #a855f7, #8b5cf6);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      margin-top: 12px;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    /* Responsive adjustments for vote tally section */
+    @media (max-width: 768px) {
+      .main {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -157,6 +203,7 @@
       <nav class="menu" aria-label="Pangunahing menu">
         <a href="#">Home</a>
         <a href="#features">Features</a>
+        <a href="#results">Results</a>
         <a href="#how">How it works</a>
         <a href="#support">Support</a>
       </nav>
@@ -178,7 +225,7 @@
         <div class="feat"><span class="dot"></span><div>Accessible UI for desktop at mobile</div></div>
       </div>
       <div class="cta-row">
-        <button class="btn btn-primary" type="button">Start Demo</button>
+        <button class="btn btn-primary" type="button" onclick="document.getElementById('results').scrollIntoView({behavior: 'smooth'})">View Results</button>
         <button class="btn btn-ghost" type="button">Learn More</button>
       </div>
     </section>
@@ -209,8 +256,18 @@
         </div>
         <button class="btn btn-primary" type="submit" id="loginBtn" aria-label="Login">Login</button>
       </form>
+      
+      <!-- Admin bypass indicator (will be shown dynamically) -->
+      <div id="adminIndicator" class="admin-indicator" style="display: none;">
+        👑 Admin detected - OTP verification will be bypassed
+      </div>
     </aside>
   </main>
+
+  <!-- Public Vote Tally Section -->
+  <div id="results">
+    <?php include 'views/partials/public_vote_tally.php'; ?>
+  </div>
 
   <footer>
     <div class="foot">
@@ -242,6 +299,7 @@
     const otpAlert = document.getElementById('otpAlert');
     const otpMessage = document.getElementById('otpMessage');
     const verifyBtn = document.getElementById('verifyBtn');
+    const adminIndicator = document.getElementById('adminIndicator');
 
     loginForm.addEventListener('submit', function(e) {
       e.preventDefault();
@@ -271,22 +329,81 @@
       })
       .then(data => {
         console.log('Login parsed data:', data);
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Login';
         
         if (data.status === "success") {
           userRole = data.role;
-          const userEmail = document.getElementById('email').value;
-          otpMessage.textContent = data.message || `We sent a 6-digit code to ${userEmail}`;
-          otpModal.style.display = 'grid';
-          document.getElementById('otpCode').focus();
+          
+          // Check if user is admin - bypass OTP modal entirely
+          if (data.role === "admin") {
+            console.log('Admin user detected - bypassing OTP verification');
+            
+            // Show admin indicator
+            adminIndicator.style.display = 'block';
+            loginBtn.innerHTML = '👑 Admin Access - Redirecting<span class="spinner"></span>';
+            
+            // Directly call verify_otp.php for admin users (it will bypass OTP check)
+            fetch("verify_otp.php", {
+              method: "POST",
+              headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+              },
+              body: '' // No OTP needed for admin
+            })
+            .then(res => {
+              console.log('Admin verification status:', res.status);
+              return res.text();
+            })
+            .then(text => {
+              console.log('Admin verification raw response:', text);
+              try {
+                return JSON.parse(text);
+              } catch (e) {
+                console.error('Admin verification JSON parse error:', e);
+                throw new Error('Invalid response from server');
+              }
+            })
+            .then(verifyData => {
+              console.log('Admin verification response:', verifyData);
+              if (verifyData.status === "success") {
+                // Show success and redirect to admin dashboard
+                adminIndicator.innerHTML = '✅ Admin authenticated successfully - Redirecting...';
+                setTimeout(() => {
+                  window.location.href = "admin.php";
+                }, 1500);
+              } else {
+                adminIndicator.style.display = 'none';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+                alert("Admin authentication failed: " + verifyData.message);
+              }
+            })
+            .catch(err => {
+              console.error('Admin verification error:', err);
+              adminIndicator.style.display = 'none';
+              loginBtn.disabled = false;
+              loginBtn.textContent = 'Login';
+              alert("Admin authentication error: " + err.message);
+            });
+          } else {
+            // For non-admin users, show OTP modal as usual
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Login';
+            const userEmail = document.getElementById('email').value;
+            otpMessage.textContent = data.message || `We sent a 6-digit code to ${userEmail}`;
+            otpModal.style.display = 'grid';
+            document.getElementById('otpCode').focus();
+          }
         } else {
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Login';
           alert(data.message || "Login failed. Please try again.");
         }
       })
       .catch(err => {
         loginBtn.disabled = false;
         loginBtn.textContent = 'Login';
+        adminIndicator.style.display = 'none';
         alert("Error: " + err.message);
         console.error('Login error:', err);
       });

@@ -9,7 +9,30 @@ header('Content-Type: application/json');
 ini_set('display_errors', 0);
 error_reporting(0);
 
-// Get input
+// Check if user is admin - if so, skip OTP verification
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    // Admin users bypass OTP verification
+    $_SESSION['authenticated'] = true;
+    $_SESSION['login_time'] = time();
+    
+    // Clear OTP data if it exists
+    if (isset($_SESSION['otp'])) {
+        unset($_SESSION['otp']);
+    }
+    if (isset($_SESSION['otp_expiry'])) {
+        unset($_SESSION['otp_expiry']);
+    }
+    
+    echo json_encode([
+        "status" => "success",
+        "message" => "Admin access granted - OTP verification bypassed",
+        "role" => $_SESSION['role'],
+        "user_id" => $_SESSION['user_id'] ?? null
+    ]);
+    exit;
+}
+
+// For non-admin users, proceed with normal OTP verification
 $inputOtp = trim($_POST['otp'] ?? '');
 
 // Validate input
@@ -81,6 +104,7 @@ exit;
         .success { border-left-color: #22c55e; }
         .error { border-left-color: #ef4444; }
         .warning { border-left-color: #f59e0b; }
+        .admin-bypass { border-left-color: #a855f7; background: #2d1b69; }
         pre {
             background: #1e293b;
             padding: 10px;
@@ -109,6 +133,15 @@ exit;
 <body>
     <h1>🔍 OTP Verification Debug Tool</h1>
 
+    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+    <div class="section admin-bypass">
+        <h3>👑 Admin Bypass Active</h3>
+        <p style="color: #a855f7;"><strong>✅ Admin user detected - OTP verification will be bypassed!</strong></p>
+        <p>User Role: <strong><?php echo $_SESSION['role']; ?></strong></p>
+        <p>User ID: <strong><?php echo $_SESSION['user_id'] ?? 'Not set'; ?></strong></p>
+    </div>
+    <?php endif; ?>
+
     <div class="section">
         <h3>📋 Current Session Data</h3>
         <pre><?php print_r($_SESSION); ?></pre>
@@ -133,6 +166,10 @@ exit;
     <div class="section">
         <h3>🧪 Test verify_otp.php Response</h3>
         <p>This will send a test OTP to verify_otp.php and show the raw response.</p>
+        
+        <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+            <button onclick="testAdminBypass()">Test Admin Bypass (No OTP Required)</button>
+        <?php endif; ?>
         
         <?php if (isset($_SESSION['otp'])): ?>
             <button onclick="testCorrectOtp()">Test with Correct OTP (<?php echo $_SESSION['otp']; ?>)</button>
@@ -180,6 +217,10 @@ exit;
     </div>
 
     <script>
+        function testAdminBypass() {
+            testOtp('', 'Admin Bypass Test');
+        }
+
         function testCorrectOtp() {
             const otp = '<?php echo $_SESSION['otp'] ?? ''; ?>';
             testOtp(otp, 'Correct OTP');
@@ -198,12 +239,17 @@ exit;
             resultDiv.style.display = 'block';
             resultDiv.innerHTML = '<p>Testing...</p>';
             
+            let body = '';
+            if (otpCode !== '') {
+                body = `otp=${otpCode}`;
+            }
+            
             fetch('verify_otp.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: `otp=${otpCode}`
+                body: body
             })
             .then(res => {
                 console.log('Status:', res.status);

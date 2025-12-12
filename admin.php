@@ -125,6 +125,43 @@ if (isset($_POST['updateVotingSchedule'])) {
     $messageType = $result['success'] ? 'success' : 'error';
 }
 
+// Filing Schedule Management
+if (isset($_POST['updateFilingSchedule'])) {
+    // Check if reset_filings checkbox is checked (only for closed status)
+    $resetFilings = (isset($_POST['reset_filings']) && $_POST['reset_filings'] === '1');
+    
+    $result = $filingController->updateFilingSchedule(
+        $_POST['filing_status'] ?? 'closed',
+        $_POST['filing_start_date'] ?? null,
+        $_POST['filing_end_date'] ?? null,
+        $_POST['filing_description'] ?? '',
+        $resetFilings
+    );
+    $message = $result['message'];
+    $messageType = $result['success'] ? 'success' : 'error';
+}
+
+// Manual Reset All Filings
+if (isset($_POST['resetAllFilings'])) {
+    if (isset($_POST['confirm_filing_reset']) && $_POST['confirm_filing_reset'] === 'yes') {
+        $result = $filingController->resetAllFilings();
+        $message = $result['message'];
+        $messageType = $result['success'] ? 'success' : 'error';
+    } else {
+        $message = "Reset cancelled. Confirmation required.";
+        $messageType = 'error';
+    }
+}
+
+// Reset Individual User's Filings
+if (isset($_POST['resetUserFilings'])) {
+    $userId = intval($_POST['resetUserFilings']);
+    
+    $result = $filingController->resetUserFilings($userId);
+    $message = $result['message'];
+    $messageType = $result['success'] ? 'success' : 'error';
+}
+
 // Report Generation
 $reportData = [];
 $reportType = '';

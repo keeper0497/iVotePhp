@@ -45,7 +45,16 @@
                 <span class="icon">
                     <ion-icon name="calendar-outline"></ion-icon>
                 </span>
-                <span class="title">Schedule Voting Time</span>
+                <span class="title">Schedule Management</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="#" id="filingScheduleBtn">
+                <span class="icon">
+                    <ion-icon name="document-outline"></ion-icon>
+                </span>
+                <span class="title">Filing Schedule</span>
             </a>
         </li>
         <li>

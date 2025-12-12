@@ -46,6 +46,8 @@
         <!-- Voting Schedule Section -->
         <?php include __DIR__ . '/partials/admin/voting_schedule.php'; ?>
 
+        <?php include __DIR__ . '/partials/admin/filing_schedule.php'; ?>
+
         <!-- Reporting Section -->
         <?php include __DIR__ . '/partials/admin/reporting.php'; ?>
     </div>

@@ -12,6 +12,9 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$bypassVotingCheck = isset($_GET['bypass_voting_check']) && $_GET['bypass_voting_check'] == '1';
+$forceShow = isset($_GET['force_show']) && $_GET['force_show'] == '1';
+
 $conn = getConnection();
 
 // Get organization from request
@@ -40,14 +43,14 @@ if ($scheduleResult && $scheduleResult->num_rows > 0) {
 }
 
 // ONLY ALLOW TALLY VIEWING WHEN VOTING IS CLOSED (UNLESS USER IS ADMIN/COMMISSIONER)
-if ($votingStatus !== 'closed' && !$isPrivilegedUser && !$isPrivilegedView) {
-    echo json_encode([
-        'error' => 'Vote tally is not available while voting is active',
-        'voting_status' => 'open',
-        'message' => 'Results will be available after voting closes'
-    ]);
-    exit;
-}
+// if ($votingStatus !== 'closed' && !$isPrivilegedUser && !$isPrivilegedView) {
+//     echo json_encode([
+//         'error' => 'Vote tally is not available while voting is active',
+//         'voting_status' => 'open',
+//         'message' => 'Results will be available after voting closes'
+//     ]);
+//     exit;
+// }
 
 // If privileged user is viewing while voting is open, add a flag to the response
 $isRealTimeView = ($votingStatus === 'open' && ($isPrivilegedUser || $isPrivilegedView));
